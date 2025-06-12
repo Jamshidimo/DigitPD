@@ -937,6 +937,21 @@
             }
             
             if (!needsEC) {
+                if (answers['q3b'] === 'patch' && answers['q3l'] === 'removal-forgotten') {
+                    return {
+                        class: 'result-no-nk',
+                        title: '✅ Keine Notfallkontrazeption nötig',
+                        content: `
+                            <p><strong>Grund:</strong> Vergessen des Entfernens des 3. Pflasters</p>
+                            <ul>
+                                <li>Pflaster so bald wie möglich entfernen</li>
+                                <li>Nächster Zyklus beginnt am gewohnten Wechseltag (Tag 29)</li>
+                                <li>Keine zusätzliche Verhütung mit Kondom notwendig</li>
+                            </ul>
+                        `
+                    };
+                }
+
                 return {
                     class: 'result-no-nk',
                     title: '✅ Keine Notfallkontrazeption nötig',
@@ -994,7 +1009,17 @@
             const contraceptiveType = answers['q3b'];
             
             if (contraceptiveType === 'combined-pill') {
+                const week = answers['q3d'];
                 if (timeFrame === '0-72h') {
+                    if (week === 'week3') {
+                        return `
+                            <ul>
+                                <li><strong>Methode A:</strong> Vergessene Tablette sofort einnehmen und Packung ohne Pause beenden. Nächste Packung direkt anschliessen.</li>
+                                <li><strong>Methode B:</strong> Einnahme der aktuellen Packung abbrechen und nach einem einnahmefreien Intervall von bis zu 7 Tagen neue Packung beginnen.</li>
+                                <li>Keine zusätzliche Verhütung notwendig bei korrekter Einnahme der letzten 7 Tage.</li>
+                            </ul>
+                        `;
+                    }
                     return `
                         <ul>
                             <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
@@ -1003,12 +1028,15 @@
                         </ul>
                     `;
                 } else {
+                    let blutung = 'möglich';
+                    if (week === 'week1') blutung = 'unwahrscheinlich';
+                    if (week === 'week3') blutung = 'wahrscheinlich';
                     return `
                         <ul>
                             <li>Vergessene Tabletten NICHT nachholen</li>
                             <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
                             <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
-                            <li>Hinweis: Entzugsblutung ${answers['q3d'] === 'week1' ? 'unwahrscheinlich' : 'möglich'}</li>
+                            <li>Hinweis: Entzugsblutung ${blutung}</li>
                         </ul>
                     `;
                 }
@@ -1031,20 +1059,56 @@
                     `;
                 }
             } else if (contraceptiveType === 'ring') {
-                if (timeFrame === '0-72h') {
-                    return `
-                        <ul>
-                            <li>Ring so bald wie möglich erneut einsetzen</li>
-                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
-                        </ul>
-                    `;
-                } else {
+                const ringProblem = answers['q3i'];
+                if (ringProblem === 'out-3h') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>Ring so bald wie möglich erneut einsetzen</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                            </ul>
+                        `;
+                    }
                     return `
                         <ul>
                             <li>Aktuellen Ring verwerfen</li>
                             <li>Ring-Anwendung 5 Tage unterbrechen</li>
-                            <li>Am 6. Tag nach UPA-Einnahme neuen Ring einsetzen</li>
-                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                            <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                } else if (ringProblem === 'not-changed-4w') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>Aktuellen Ring verwerfen</li>
+                                <li>So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                            </ul>
+                        `;
+                    }
+                    return `
+                        <ul>
+                            <li>Aktuellen Ring verwerfen</li>
+                            <li>Ring-Anwendung 5 Tage pausieren</li>
+                            <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                } else if (ringProblem === 'pause-over1w') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                            </ul>
+                        `;
+                    }
+                    return `
+                        <ul>
+                            <li>Anwendungspause um 5 zusätzliche Tage verlängern</li>
+                            <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
                         </ul>
                     `;
                 }
