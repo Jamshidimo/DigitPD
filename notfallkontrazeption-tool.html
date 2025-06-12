@@ -1299,35 +1299,39 @@
                 alert('PDF-Bibliothek wird geladen. Bitte versuchen Sie es in wenigen Sekunden erneut.');
                 return;
             }
-            
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
+
             // PDF Settings
             const margin = 20;
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
             const lineHeight = 7;
             let yPosition = margin;
-            
-            // Helper function to add text with line breaks
-            function addText(text, fontSize = 10, isBold = false) {
+
+            // Helper function to add text with line breaks and optional indent
+            function addText(text, fontSize = 10, isBold = false, indent = 0) {
                 if (yPosition > pageHeight - 30) {
                     doc.addPage();
                     yPosition = margin;
                 }
-                
+
                 doc.setFontSize(fontSize);
                 doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-                
-                const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
-                doc.text(lines, margin, yPosition);
-                yPosition += lines.length * lineHeight;
+
+                const lines = doc.splitTextToSize(text, pageWidth - 2 * margin - indent);
+                lines.forEach(line => {
+                    doc.text(line, margin + indent, yPosition);
+                    yPosition += lineHeight;
+                });
             }
             
             // Header
-            addText('NOTFALLKONTRAZEPTION - BERATUNGSPROTOKOLL', 16, true);
-            addText('Nach IENK-Protokoll', 12);
+            addText('NOTFALLKONTRAZEPTION', 16, true);
+            addText('Beratungsprotokoll nach IENK-Leitlinien', 12);
+            yPosition += 2;
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
             yPosition += 5;
             
             // Date and time
@@ -1346,10 +1350,10 @@
                 const questionText = questionTexts[questionId];
                 const answerValue = answers[questionId];
                 const answerText = getAnswerText(questionId, answerValue);
-                
+
                 if (questionText && answerText) {
                     addText(`${questionText}`, 10, true);
-                    addText(`- ${answerText}`, 10);
+                    addText(`- ${answerText}`, 10, false, 5);
                     yPosition += 3;
                 }
             });
@@ -1358,6 +1362,8 @@
             
             // Result
             addText('EMPFEHLUNG', 14, true);
+            yPosition += 2;
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
             yPosition += 5;
             
             const resultTitle = document.getElementById('resultTitle').textContent;
@@ -1368,9 +1374,11 @@
             
             // Extract and clean result content
             const resultText = extractTextFromHTML(resultContent.innerHTML);
-            addText(resultText, 10);
+            addText(resultText, 10, false, 5);
             
             yPosition += 10;
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 4;
             addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 8);
             addText('Verantwortlich: Apotheker/in ________________________', 8);
             
@@ -1528,6 +1536,8 @@
             
             // Replace bullet points and format lists
             text = text.replace(/•/g, '- ');
+            text = text.replace(/!'/g, '- ');
+            text = text.replace('Ø=ÜŠ', '- ');
             
             return text;
         }
