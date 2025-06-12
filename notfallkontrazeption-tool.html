@@ -937,6 +937,21 @@
             }
             
             if (!needsEC) {
+                if (answers['q3b'] === 'patch' && answers['q3l'] === 'removal-forgotten') {
+                    return {
+                        class: 'result-no-nk',
+                        title: '✅ Keine Notfallkontrazeption nötig',
+                        content: `
+                            <p><strong>Grund:</strong> Vergessen des Entfernens des 3. Pflasters</p>
+                            <ul>
+                                <li>Pflaster so bald wie möglich entfernen</li>
+                                <li>Nächster Zyklus beginnt am gewohnten Wechseltag (Tag 29)</li>
+                                <li>Keine zusätzliche Verhütung mit Kondom notwendig</li>
+                            </ul>
+                        `
+                    };
+                }
+
                 return {
                     class: 'result-no-nk',
                     title: '✅ Keine Notfallkontrazeption nötig',
