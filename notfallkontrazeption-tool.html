@@ -504,6 +504,14 @@
             <div class="question" id="q9">
                 <h3>Urteilsfähigkeit gegeben?</h3>
                 <p style="color: #666; margin-bottom: 15px; font-style: italic;">Nur bei Patientinnen < 16 Jahre</p>
+                <div class="info-box" style="font-size: 14px;">
+                    <strong>Hilfreiche Fragen zur Beurteilung:</strong>
+                    <ul style="margin-top: 8px;">
+                        <li>Weiss die Frau, was sie will, und kann sie ihren eigenen Willen äussern?</li>
+                        <li>Hat sie die Informationen über das Schwangerschaftsrisiko, die NK und die damit verbundenen Risiken verstanden?</li>
+                        <li>Ist sie in der Lage, Vorteile und Risiken gegeneinander abzuwägen und allfällige Alternativen in Betracht zu ziehen?</li>
+                    </ul>
+                </div>
                 <div class="options">
                     <div class="option" data-value="yes">Ja, urteilsfähig</div>
                     <div class="option" data-value="no">Nein, nicht urteilsfähig</div>
@@ -532,10 +540,41 @@
         let currentQuestion = 1;
         let answers = {};
         const totalQuestions = 8;
-        
+
         function updateProgress() {
             const progress = (currentQuestion <= totalQuestions ? currentQuestion / totalQuestions : 1) * 100;
             document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        // Additional comments based on IENK "Kommentare" PDF
+        function getAdditionalComments() {
+            const comments = [];
+            if (answers.q7 === 'breastfeeding') {
+                comments.push('Stillzeit: 1. Wahl LNG (6 Std. Stillpause, Milch abpumpen und verwerfen); 2. Wahl UPA (1 Woche Stillpause)');
+            }
+            if (answers.q6 === 'glukokortikoide') {
+                comments.push('Systemische Glukokortikoide: Interaktion mit UPA, reduzierte Wirksamkeit des Glukokortikoids möglich – 1. Wahl LNG');
+            }
+            if (answers.q6 === 'gestagen') {
+                comments.push('Gestagen: Interaktion mit UPA, reduzierte Wirksamkeit möglich – 1. Wahl LNG');
+            }
+            if (answers.q6 === 'cyp3a4') {
+                comments.push('CYP3A4-Induktor: Interaktion mit LNG und UPA, reduzierte Wirksamkeit – 1. Wahl Kupferspirale; 2. Wahl doppelte Dosis LNG (3 mg)');
+            }
+            if (answers.q5 === '25-30') {
+                comments.push('BMI 25–30 kg/m²: reduzierte Wirksamkeit möglich – 1. Wahl UPA 30 mg, 2. Wahl doppelte Dosis LNG (3 mg)');
+            }
+            if (answers.q5 === 'over30') {
+                comments.push('BMI >30 kg/m²: 1. Wahl Kupferspirale, 2. Wahl UPA 30 mg oder LNG doppelte Dosis (3 mg)');
+            }
+            if (answers.q8 === 'same-cycle') {
+                comments.push('Wiederholte Einnahme im selben Zyklus möglich. Bei Wechsel zwischen LNG und UPA verminderte Wirksamkeit – gleicher Wirkstoff bevorzugen.');
+            }
+
+            if (comments.length) {
+                return '<p><strong>Kommentare:</strong></p><ul><li>' + comments.join('</li><li>') + '</li></ul>';
+            }
+            return '';
         }
         
         function showQuestion(questionNum) {
@@ -598,6 +637,8 @@
             // Main navigation logic
             if (currentQuestion === 1 && answers.q1 === 'under16') {
                 currentQuestion = 9; // Urteilsfähigkeit
+                showQuestion(currentQuestion);
+                return;
             } else if (currentQuestion === 9) {
                 if (answers.q9 === 'no') {
                     showResult();
@@ -751,13 +792,14 @@
             document.querySelector('.navigation').style.display = 'none';
             
             const result = calculateResult();
+            const comments = getAdditionalComments();
             const resultDiv = document.getElementById('result');
             const resultTitle = document.getElementById('resultTitle');
             const resultContent = document.getElementById('resultContent');
-            
+
             resultDiv.className = 'result show ' + result.class;
             resultTitle.textContent = result.title;
-            resultContent.innerHTML = result.content;
+            resultContent.innerHTML = result.content + comments;
             
             updateProgress();
         }
@@ -778,6 +820,7 @@
                 }
             }
             
+
             // Check contraindications first
             if (answers.q7 === 'liver') {
                 return {
@@ -798,8 +841,8 @@
             if (answers.q1 === 'under16' && answers.q9 === 'no') {
                 return {
                     class: 'result-referral',
-                    title: '⚠️ Weiterleitung erforderlich',
-                    content: '<p><strong>Grund:</strong> Patientin < 16 Jahre und nicht urteilsfähig</p><p><strong>Weiterleitung an:</strong> Frauenspital oder Frauenarzt/Frauenärztin</p>'
+                    title: '⚠️ Weiterleitung empfohlen',
+                    content: '<p><strong>Grund:</strong> Patientin < 16 Jahre und nicht urteilsfähig</p><p><strong>Weiterleitung an Arzt/Ärztin/Beratungsstelle empfohlen:</strong> <a href="http://sexuelle-gesundheit.ch/beratungsstellen" target="_blank">sexuelle-gesundheit.ch/beratungsstellen</a></p>'
                 };
             }
             
@@ -832,47 +875,84 @@
                 ectopicWarning = '<p><strong>⚠️ Warnung:</strong> Erhöhtes Risiko für ektope Schwangerschaft. Über Alarmsymptome informieren.</p>';
             }
             
+            const within72h = answers.q2 === '0-72h';
+
             // CYP3A4 inductor
             if (answers.q6 === 'cyp3a4') {
+                if (within72h) {
+                    return {
+                        class: 'result-referral',
+                        title: '⚠️ Spezielle Situation',
+                        content: '<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> Doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> CYP3A4-Induktor</p>' + ectopicWarning
+                    };
+                }
                 return {
                     class: 'result-referral',
-                    title: '⚠️ Spezielle Situation',
-                    content: '<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> Doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> CYP3A4-Induktor</p>' + ectopicWarning
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: '<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>Grund:</strong> CYP3A4-Induktor und >72h seit uGV – LNG nicht zugelassen</p>' + ectopicWarning
                 };
             }
             
             // BMI considerations
             if (answers.q5 === 'over30') {
+                if (within72h) {
+                    return {
+                        class: 'result-referral',
+                        title: '⚠️ Kupferspirale empfohlen',
+                        content: `<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> UPA 30 mg oder doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> BMI > 30 kg/m²</p>${ovulationWarning}${ectopicWarning}`
+                    };
+                }
                 return {
-                    class: 'result-upa',
-                    title: '💊 UPA 30 mg empfohlen',
-                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI > 30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li><li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li></ul>`
+                    class: 'result-referral',
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI > 30 kg/m² und >72h seit uGV (LNG nicht zugelassen)</p>${ovulationWarning}${ectopicWarning}`
                 };
             }
             
             if (answers.q5 === '25-30') {
+                if (within72h) {
+                    return {
+                        class: 'result-upa',
+                        title: '💊 UPA 30 mg empfohlen',
+                        content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>2. Wahl:</strong> Doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> BMI 25-30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                    };
+                }
                 return {
                     class: 'result-upa',
                     title: '💊 UPA 30 mg empfohlen',
-                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI 25-30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI 25-30 kg/m² und >72h seit uGV (LNG nicht zugelassen)</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
                 };
             }
             
             // Drug interactions
             if (answers.q6 === 'glukokortikoide' || answers.q6 === 'gestagen') {
+                if (within72h) {
+                    return {
+                        class: 'result-lng',
+                        title: '💊 LNG 1,5 mg',
+                        content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg</p><p><strong>Grund:</strong> Interaktion mit UPA</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                    };
+                }
                 return {
-                    class: 'result-lng',
-                    title: '💊 LNG 1,5 mg',
-                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg</p><p><strong>Grund:</strong> Interaktion mit UPA</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                    class: 'result-referral',
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>Grund:</strong> Interaktion mit UPA und >72h seit uGV – LNG nicht zugelassen</p>${ovulationWarning}${ectopicWarning}`
                 };
             }
             
             // Breastfeeding
             if (answers.q7 === 'breastfeeding') {
+                if (within72h) {
+                    return {
+                        class: 'result-lng',
+                        title: '💊 LNG 1,5 mg',
+                        content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg (6h Stillpause)</p><p><strong>2. Wahl:</strong> UPA 30 mg (1 Woche Stillpause)</p>${ovulationWarning}${ectopicWarning}`
+                    };
+                }
                 return {
-                    class: 'result-lng',
-                    title: '💊 LNG 1,5 mg',
-                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg (6h Stillpause)</p><p><strong>2. Wahl:</strong> UPA 30 mg (1 Woche Stillpause)</p>${ovulationWarning}${ectopicWarning}`
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg',
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg (1 Woche Stillpause)</p><p><strong>Grund:</strong> Stillzeit und >72h seit uGV</p>${ovulationWarning}${ectopicWarning}`
                 };
             }
             
@@ -937,6 +1017,21 @@
             }
             
             if (!needsEC) {
+                if (answers['q3b'] === 'patch' && answers['q3l'] === 'removal-forgotten') {
+                    return {
+                        class: 'result-no-nk',
+                        title: '✅ Keine Notfallkontrazeption nötig',
+                        content: `
+                            <p><strong>Grund:</strong> Vergessen des Entfernens des 3. Pflasters</p>
+                            <ul>
+                                <li>Pflaster so bald wie möglich entfernen</li>
+                                <li>Nächster Zyklus beginnt am gewohnten Wechseltag (Tag 29)</li>
+                                <li>Keine zusätzliche Verhütung mit Kondom notwendig</li>
+                            </ul>
+                        `
+                    };
+                }
+
                 return {
                     class: 'result-no-nk',
                     title: '✅ Keine Notfallkontrazeption nötig',
@@ -994,7 +1089,17 @@
             const contraceptiveType = answers['q3b'];
             
             if (contraceptiveType === 'combined-pill') {
+                const week = answers['q3d'];
                 if (timeFrame === '0-72h') {
+                    if (week === 'week3') {
+                        return `
+                            <ul>
+                                <li><strong>Methode A:</strong> Vergessene Tablette sofort einnehmen und Packung ohne Pause beenden. Nächste Packung direkt anschliessen.</li>
+                                <li><strong>Methode B:</strong> Einnahme der aktuellen Packung abbrechen und nach einem einnahmefreien Intervall von bis zu 7 Tagen neue Packung beginnen.</li>
+                                <li>Keine zusätzliche Verhütung notwendig bei korrekter Einnahme der letzten 7 Tage.</li>
+                            </ul>
+                        `;
+                    }
                     return `
                         <ul>
                             <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
@@ -1003,12 +1108,15 @@
                         </ul>
                     `;
                 } else {
+                    let blutung = 'möglich';
+                    if (week === 'week1') blutung = 'unwahrscheinlich';
+                    if (week === 'week3') blutung = 'wahrscheinlich';
                     return `
                         <ul>
                             <li>Vergessene Tabletten NICHT nachholen</li>
                             <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
                             <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
-                            <li>Hinweis: Entzugsblutung ${answers['q3d'] === 'week1' ? 'unwahrscheinlich' : 'möglich'}</li>
+                            <li>Hinweis: Entzugsblutung ${blutung}</li>
                         </ul>
                     `;
                 }
@@ -1031,20 +1139,56 @@
                     `;
                 }
             } else if (contraceptiveType === 'ring') {
-                if (timeFrame === '0-72h') {
-                    return `
-                        <ul>
-                            <li>Ring so bald wie möglich erneut einsetzen</li>
-                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
-                        </ul>
-                    `;
-                } else {
+                const ringProblem = answers['q3i'];
+                if (ringProblem === 'out-3h') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>Ring so bald wie möglich erneut einsetzen</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                            </ul>
+                        `;
+                    }
                     return `
                         <ul>
                             <li>Aktuellen Ring verwerfen</li>
                             <li>Ring-Anwendung 5 Tage unterbrechen</li>
-                            <li>Am 6. Tag nach UPA-Einnahme neuen Ring einsetzen</li>
-                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                            <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                } else if (ringProblem === 'not-changed-4w') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>Aktuellen Ring verwerfen</li>
+                                <li>So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                            </ul>
+                        `;
+                    }
+                    return `
+                        <ul>
+                            <li>Aktuellen Ring verwerfen</li>
+                            <li>Ring-Anwendung 5 Tage pausieren</li>
+                            <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                } else if (ringProblem === 'pause-over1w') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                            </ul>
+                        `;
+                    }
+                    return `
+                        <ul>
+                            <li>Anwendungspause um 5 zusätzliche Tage verlängern</li>
+                            <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
                         </ul>
                     `;
                 }
