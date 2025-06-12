@@ -606,6 +606,8 @@
             // Main navigation logic
             if (currentQuestion === 1 && answers.q1 === 'under16') {
                 currentQuestion = 9; // Urteilsfähigkeit
+                showQuestion(currentQuestion);
+                return;
             } else if (currentQuestion === 9) {
                 if (answers.q9 === 'no') {
                     showResult();
