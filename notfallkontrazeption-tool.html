@@ -504,6 +504,14 @@
             <div class="question" id="q9">
                 <h3>Urteilsfähigkeit gegeben?</h3>
                 <p style="color: #666; margin-bottom: 15px; font-style: italic;">Nur bei Patientinnen < 16 Jahre</p>
+                <div class="info-box" style="font-size: 14px;">
+                    <strong>Hilfreiche Fragen zur Beurteilung:</strong>
+                    <ul style="margin-top: 8px;">
+                        <li>Weiss die Frau, was sie will, und kann sie ihren eigenen Willen äussern?</li>
+                        <li>Hat sie die Informationen über das Schwangerschaftsrisiko, die NK und die damit verbundenen Risiken verstanden?</li>
+                        <li>Ist sie in der Lage, Vorteile und Risiken gegeneinander abzuwägen und allfällige Alternativen in Betracht zu ziehen?</li>
+                    </ul>
+                </div>
                 <div class="options">
                     <div class="option" data-value="yes">Ja, urteilsfähig</div>
                     <div class="option" data-value="no">Nein, nicht urteilsfähig</div>
@@ -798,8 +806,8 @@
             if (answers.q1 === 'under16' && answers.q9 === 'no') {
                 return {
                     class: 'result-referral',
-                    title: '⚠️ Weiterleitung erforderlich',
-                    content: '<p><strong>Grund:</strong> Patientin < 16 Jahre und nicht urteilsfähig</p><p><strong>Weiterleitung an:</strong> Frauenspital oder Frauenarzt/Frauenärztin</p>'
+                    title: '⚠️ Weiterleitung empfohlen',
+                    content: '<p><strong>Grund:</strong> Patientin < 16 Jahre und nicht urteilsfähig</p><p><strong>Weiterleitung an Arzt/Ärztin/Beratungsstelle empfohlen:</strong> <a href="http://sexuelle-gesundheit.ch/beratungsstellen" target="_blank">sexuelle-gesundheit.ch/beratungsstellen</a></p>'
                 };
             }
             
