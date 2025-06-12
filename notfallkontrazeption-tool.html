@@ -540,10 +540,41 @@
         let currentQuestion = 1;
         let answers = {};
         const totalQuestions = 8;
-        
+
         function updateProgress() {
             const progress = (currentQuestion <= totalQuestions ? currentQuestion / totalQuestions : 1) * 100;
             document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        // Additional comments based on IENK "Kommentare" PDF
+        function getAdditionalComments() {
+            const comments = [];
+            if (answers.q7 === 'breastfeeding') {
+                comments.push('Stillzeit: 1. Wahl LNG (6 Std. Stillpause, Milch abpumpen und verwerfen); 2. Wahl UPA (1 Woche Stillpause)');
+            }
+            if (answers.q6 === 'glukokortikoide') {
+                comments.push('Systemische Glukokortikoide: Interaktion mit UPA, reduzierte Wirksamkeit des Glukokortikoids möglich – 1. Wahl LNG');
+            }
+            if (answers.q6 === 'gestagen') {
+                comments.push('Gestagen: Interaktion mit UPA, reduzierte Wirksamkeit möglich – 1. Wahl LNG');
+            }
+            if (answers.q6 === 'cyp3a4') {
+                comments.push('CYP3A4-Induktor: Interaktion mit LNG und UPA, reduzierte Wirksamkeit – 1. Wahl Kupferspirale; 2. Wahl doppelte Dosis LNG (3 mg)');
+            }
+            if (answers.q5 === '25-30') {
+                comments.push('BMI 25–30 kg/m²: reduzierte Wirksamkeit möglich – 1. Wahl UPA 30 mg, 2. Wahl doppelte Dosis LNG (3 mg)');
+            }
+            if (answers.q5 === 'over30') {
+                comments.push('BMI >30 kg/m²: 1. Wahl Kupferspirale, 2. Wahl UPA 30 mg oder LNG doppelte Dosis (3 mg)');
+            }
+            if (answers.q8 === 'same-cycle') {
+                comments.push('Wiederholte Einnahme im selben Zyklus möglich. Bei Wechsel zwischen LNG und UPA verminderte Wirksamkeit – gleicher Wirkstoff bevorzugen.');
+            }
+
+            if (comments.length) {
+                return '<p><strong>Kommentare:</strong></p><ul><li>' + comments.join('</li><li>') + '</li></ul>';
+            }
+            return '';
         }
         
         function showQuestion(questionNum) {
@@ -761,13 +792,14 @@
             document.querySelector('.navigation').style.display = 'none';
             
             const result = calculateResult();
+            const comments = getAdditionalComments();
             const resultDiv = document.getElementById('result');
             const resultTitle = document.getElementById('resultTitle');
             const resultContent = document.getElementById('resultContent');
-            
+
             resultDiv.className = 'result show ' + result.class;
             resultTitle.textContent = result.title;
-            resultContent.innerHTML = result.content;
+            resultContent.innerHTML = result.content + comments;
             
             updateProgress();
         }
@@ -788,6 +820,7 @@
                 }
             }
             
+
             // Check contraindications first
             if (answers.q7 === 'liver') {
                 return {
@@ -854,9 +887,9 @@
             // BMI considerations
             if (answers.q5 === 'over30') {
                 return {
-                    class: 'result-upa',
-                    title: '💊 UPA 30 mg empfohlen',
-                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI > 30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li><li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li></ul>`
+                    class: 'result-referral',
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> UPA 30 mg oder doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> BMI > 30 kg/m²</p>${ovulationWarning}${ectopicWarning}`
                 };
             }
             
@@ -864,7 +897,7 @@
                 return {
                     class: 'result-upa',
                     title: '💊 UPA 30 mg empfohlen',
-                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI 25-30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>2. Wahl:</strong> Doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> BMI 25-30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
                 };
             }
             
