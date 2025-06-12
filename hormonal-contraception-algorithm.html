@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Differenziertes Vorgehen - Hormonelle Verhütung</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .question {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            background: #f8faff;
+            display: none;
+        }
+        
+        .question.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .question h3 {
+            color: #2c5aa0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .option {
+            padding: 12px 15px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .option:hover {
+            border-color: #2c5aa0;
+            background: #f0f4ff;
+        }
+        
+        .option.selected {
+            border-color: #2c5aa0;
+            background: #2c5aa0;
+            color: white;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #2c5aa0;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e3c72;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            display: none;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .result.show {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .result-lng {
+            background: #dcfce7;
+            border: 2px solid #16a34a;
+        }
+        
+        .result-upa {
+            background: #fef3c7;
+            border: 2px solid #d97706;
+        }
+        
+        .result-no-nk {
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
+        }
+        
+        .result h2 {
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        .result-lng h2 { color: #16a34a; }
+        .result-upa h2 { color: #d97706; }
+        .result-no-nk h2 { color: #0284c7; }
+        
+        .result ul {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .result li {
+            margin-bottom: 8px;
+        }
+        
+        .progress {
+            background: #e5e7eb;
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: #2c5aa0;
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+        
+        .restart-btn {
+            margin-top: 20px;
+            background: #6b7280;
+            color: white;
+        }
+        
+        .restart-btn:hover {
+            background: #4b5563;
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .info-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Differenziertes Vorgehen</h1>
+            <p>Hormonelle Verhütung und Schwangerschaftsrisiko nach IENK-Protokoll</p>
+        </div>
+        
+        <div class="content">
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <!-- Frage 1: Art der hormonellen Verhütung -->
+            <div class="question active" id="q1">
+                <h3>1. Art der hormonellen Verhütung</h3>
+                <div class="options">
+                    <div class="option" data-value="combined-pill">Kombinierte orale Kontrazeptiva (Pille)</div>
+                    <div class="option" data-value="progestin-pill">Reine Gestagenpille (z.B. Cerazette)</div>
+                    <div class="option" data-value="ring">Verhütungsring (z.B. Nuvaring)</div>
+                    <div class="option" data-value="patch">Verhütungspflaster (z.B. Evra)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 2a: Kombinierte Pille - Eigenschaften -->
+            <div class="question" id="q2a">
+                <h3>2. Eigenschaften der kombinierten Pille</h3>
+                <div class="info-box">
+                    <strong>Hinweis:</strong> Nur gültig für Pillen mit 20-35mcg Ethinylestradiol, 21/7 Modell, ohne Placebo-Tabletten.
+                    Nicht gültig für neuere Präparate wie Gyselle petite, Zoely, Qlaira.
+                </div>
+                <div class="options">
+                    <div class="option" data-value="standard">Standard kombinierte Pille (20-35mcg Ethinylestradiol, 21/7)</div>
+                    <div class="option" data-value="newer">Neuere Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 2b: Woche im Zyklus (nur bei Standard-Pille) -->
+            <div class="question" id="q2b">
+                <h3>2b. In welcher Woche des Zyklus trat das Problem auf?</h3>
+                <div class="options">
+                    <div class="option" data-value="week1">Woche 1 (Tabletten 1-7)</div>
+                    <div class="option" data-value="week2">Woche 2 (Tabletten 8-14)</div>
+                    <div class="option" data-value="week3">Woche 3 (Tabletten 15-21)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 2c: Anzahl vergessene Tabletten -->
+            <div class="question" id="q2c">
+                <h3>2c. Wie viele Tabletten wurden vergessen?</h3>
+                <div class="options">
+                    <div class="option" data-value="one">1 Tablette vergessen</div>
+                    <div class="option" data-value="multiple">2 oder mehr Tabletten vergessen</div>
+                </div>
+            </div>
+            
+            <!-- Frage 2d: Korrekte Einnahme in letzten 7 Tagen -->
+            <div class="question" id="q2d">
+                <h3>2d. Korrekte Einnahme in den letzten 7 Tagen vor dem vergessenen Tag?</h3>
+                <div class="options">
+                    <div class="option" data-value="yes">Ja, korrekte Einnahme in letzten 7 Tagen</div>
+                    <div class="option" data-value="no">Nein, ≥2 Tabletten in letzten 7 Tagen vergessen</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3a: Gestagenpille - Phase -->
+            <div class="question" id="q3a">
+                <h3>3. Phase der Gestagenpille</h3>
+                <div class="options">
+                    <div class="option" data-value="first7">Ersten 7 Tabletten nach Verhütungsbeginn</div>
+                    <div class="option" data-value="after7">Weitere Tabletten (ab 2. Anwendungswoche)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3b: Gestagenpille - Anzahl und korrekte Einnahme -->
+            <div class="question" id="q3b">
+                <h3>3b. Vergessene Tabletten und Einnahme der letzten 7 Tage</h3>
+                <div class="options">
+                    <div class="option" data-value="one-correct">1 Tablette vergessen + korrekte Einnahme letzte 7 Tage</div>
+                    <div class="option" data-value="multiple-or-incorrect">≥2 Tabletten vergessen ODER ≥2 Tabletten in letzten 7 Tagen vergessen</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4a: Ring - Problem -->
+            <div class="question" id="q4a">
+                <h3>4. Problem mit dem Verhütungsring</h3>
+                <div class="options">
+                    <div class="option" data-value="out-3h">Ring >3 Std außerhalb der Vagina</div>
+                    <div class="option" data-value="not-changed-4w">Ring >4 Wochen nicht gewechselt</div>
+                    <div class="option" data-value="pause-over1w">>1 Woche Anwendungspause</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4b: Ring - Anwendungswoche -->
+            <div class="question" id="q4b">
+                <h3>4b. In welcher Anwendungswoche trat das Problem auf?</h3>
+                <div class="options">
+                    <div class="option" data-value="week1-2">1. oder 2. Anwendungswoche</div>
+                    <div class="option" data-value="week3">3. Anwendungswoche</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4c: Ring - Korrekte Anwendung letzte 7 Tage -->
+            <div class="question" id="q4c">
+                <h3>4c. Korrekte Anwendung in den letzten 7 Tagen? (nur bei Woche 3)</h3>
+                <div class="options">
+                    <div class="option" data-value="yes">Ja, korrekte Anwendung letzte 7 Tage</div>
+                    <div class="option" data-value="no">Nein, fehlerhafte Anwendung letzte 7 Tage</div>
+                </div>
+            </div>
+            
+            <!-- Frage 5a: Pflaster - Problem -->
+            <div class="question" id="q5a">
+                <h3>5. Problem mit dem Verhütungspflaster</h3>
+                <div class="options">
+                    <div class="option" data-value="detached-24h">Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen</div>
+                    <div class="option" data-value="interval-7d">Pflasterfreies Intervall >7 Tage</div>
+                    <div class="option" data-value="removal-forgotten">Vergessen des Entfernens des 3. Pflasters (Tag 22)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 6: Zeitpunkt des Schwangerschaftsrisikos -->
+            <div class="question" id="q6">
+                <h3>6. Zeitpunkt des Schwangerschaftsrisikos</h3>
+                <div class="info-box">
+                    <strong>Wichtig:</strong> Der Zeitpunkt des späteren Ereignisses (uGV oder Versagen hV) ist maßgebend.
+                </div>
+                <div class="options">
+                    <div class="option" data-value="0-72h">≤ 72 Stunden</div>
+                    <div class="option" data-value="73-120h">73-120 Stunden</div>
+                    <div class="option" data-value="over120h">> 120 Stunden</div>
+                </div>
+            </div>
+            
+            <!-- Ergebnis -->
+            <div class="result" id="result">
+                <h2 id="resultTitle"></h2>
+                <div id="resultContent"></div>
+                <button class="btn restart-btn" onclick="restart()">Neue Beratung starten</button>
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>Zurück</button>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Weiter</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 1;
+        let answers = {};
+        const totalQuestions = 6;
+        
+        function updateProgress() {
+            const progress = (currentQuestion <= totalQuestions ? currentQuestion / totalQuestions : 1) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function showQuestion(questionNum) {
+            // Hide all questions
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            
+            // Show current question
+            const questionElement = document.getElementById('q' + questionNum);
+            if (questionElement) {
+                questionElement.classList.add('active');
+                const hasSelection = questionElement.querySelector('.option.selected');
+                document.getElementById('nextBtn').disabled = !hasSelection;
+            }
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = questionNum === 1;
+            updateProgress();
+        }
+        
+        function nextQuestion() {
+            const currentQ = document.getElementById('q' + currentQuestion);
+            const selected = currentQ ? currentQ.querySelector('.option.selected') : null;
+            if (!selected) return;
+            
+            answers['q' + currentQuestion] = selected.dataset.value;
+            
+            // Navigation logic based on contraceptive type
+            if (currentQuestion === 1) {
+                if (answers.q1 === 'combined-pill') {
+                    currentQuestion = '2a';
+                } else if (answers.q1 === 'progestin-pill') {
+                    currentQuestion = '3a';
+                } else if (answers.q1 === 'ring') {
+                    currentQuestion = '4a';
+                } else if (answers.q1 === 'patch') {
+                    currentQuestion = '5a';
+                }
+            } else if (currentQuestion === '2a') {
+                if (answers['q2a'] === 'standard') {
+                    currentQuestion = '2b';
+                } else {
+                    // For newer contraceptives, show result recommending consultation
+                    showNeverContraceptiveResult();
+                    return;
+                }
+            } else if (currentQuestion === '2b') {
+                if (answers['q2b'] === 'week1') {
+                    currentQuestion = 6; // Week 1 always needs EC
+                } else {
+                    currentQuestion = '2c'; // Week 2/3 depends on number of tablets
+                }
+            } else if (currentQuestion === '2c') {
+                if (answers['q2c'] === 'one' && (answers['q2b'] === 'week2' || answers['q2b'] === 'week3')) {
+                    currentQuestion = '2d'; // Check correct intake last 7 days
+                } else {
+                    currentQuestion = 6; // Multiple tablets always need EC
+                }
+            } else if (currentQuestion === '2d') {
+                currentQuestion = 6; // Go to timing question
+            } else if (currentQuestion === '3a') {
+                if (answers['q3a'] === 'first7') {
+                    currentQuestion = 6; // First 7 always need EC
+                } else {
+                    currentQuestion = '3b'; // Check number and correct intake
+                }
+            } else if (currentQuestion === '3b') {
+                currentQuestion = 6; // Go to timing question
+            } else if (currentQuestion === '4a') {
+                if (answers['q4a'] === 'out-3h') {
+                    currentQuestion = '4b'; // Check which week
+                } else {
+                    currentQuestion = 6; // Other ring problems always need EC
+                }
+            } else if (currentQuestion === '4b') {
+                if (answers['q4b'] === 'week3') {
+                    currentQuestion = '4c'; // Check correct application last 7 days
+                } else {
+                    currentQuestion = 6; // Week 1/2 always need EC
+                }
+            } else if (currentQuestion === '4c') {
+                currentQuestion = 6; // Go to timing question
+            } else if (currentQuestion === '5a') {
+                currentQuestion = 6; // All patch problems need timing assessment
+            } else if (currentQuestion === 6) {
+                showResult();
+                return;
+            }
+            
+            showQuestion(currentQuestion);
+        }
+        
+        function previousQuestion() {
+            if (currentQuestion > 1) {
+                // Handle special navigation
+                if (currentQuestion === '2a') {
+                    currentQuestion = 1;
+                } else if (currentQuestion === '3a') {
+                    currentQuestion = 1;
+                } else if (currentQuestion === '4a') {
+                    currentQuestion = 1;
+                } else if (currentQuestion === '5a') {
+                    currentQuestion = 1;
+                } else if (currentQuestion === '2b') {
+                    currentQuestion = '2a';
+                } else if (currentQuestion === '2c') {
+                    currentQuestion = '2b';
+                } else if (currentQuestion === '2d') {
+                    currentQuestion = '2c';
+                } else if (currentQuestion === '3b') {
+                    currentQuestion = '3a';
+                } else if (currentQuestion === '4b') {
+                    currentQuestion = '4a';
+                } else if (currentQuestion === '4c') {
+                    currentQuestion = '4b';
+                } else if (currentQuestion === 6) {
+                    // Return to appropriate question based on contraceptive type
+                    if (answers.q1 === 'combined-pill') {
+                        if (answers['q2b'] === 'week1') {
+                            currentQuestion = '2b';
+                        } else if (answers['q2c'] === 'multiple') {
+                            currentQuestion = '2c';
+                        } else {
+                            currentQuestion = '2d';
+                        }
+                    } else if (answers.q1 === 'progestin-pill') {
+                        if (answers['q3a'] === 'first7') {
+                            currentQuestion = '3a';
+                        } else {
+                            currentQuestion = '3b';
+                        }
+                    } else if (answers.q1 === 'ring') {
+                        if (answers['q4a'] === 'out-3h') {
+                            if (answers['q4b'] === 'week3') {
+                                currentQuestion = '4c';
+                            } else {
+                                currentQuestion = '4b';
+                            }
+                        } else {
+                            currentQuestion = '4a';
+                        }
+                    } else if (answers.q1 === 'patch') {
+                        currentQuestion = '5a';
+                    }
+                }
+                showQuestion(currentQuestion);
+            }
+        }
+        
+        function showNeverContraceptiveResult() {
+            // Hide questions and navigation
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.querySelector('.navigation').style.display = 'none';
+            
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.className = 'result show result-no-nk';
+            resultTitle.textContent = '📋 Fachinformation konsultieren';
+            resultContent.innerHTML = `
+                <p><strong>Hinweis:</strong> Für neuere orale Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.) gelten die Standard-Regeln nicht.</p>
+                <p><strong>Empfehlung:</strong> Bitte konsultieren Sie die spezifische Fachinformation des verwendeten Präparats für das korrekte Vorgehen bei fehlerhafter Einnahme.</p>
+                <p><strong>Allgemeine Regel:</strong> Bei Unsicherheit sollte eine Notfallkontrazeption in Betracht gezogen werden.</p>
+            `;
+            
+            updateProgress();
+        }
+        
+        function showResult() {
+            // Hide questions and navigation
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.querySelector('.navigation').style.display = 'none';
+            
+            const result = calculateResult();
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.className = 'result show ' + result.class;
+            resultTitle.textContent = result.title;
+            resultContent.innerHTML = result.content;
+            
+            updateProgress();
+        }
+        
+        function calculateResult() {
+            const timeFrame = answers.q6;
+            
+            // Check if no emergency contraception is needed
+            let needsEC = true;
+            let reason = '';
+            
+            // Combined pill logic
+            if (answers.q1 === 'combined-pill' && answers['q2a'] === 'standard') {
+                if (answers['q2b'] === 'week2' && answers['q2c'] === 'one' && answers['q2d'] === 'yes') {
+                    needsEC = false;
+                    reason = 'Woche 2, nur 1 Tablette vergessen, korrekte Einnahme letzte 7 Tage';
+                } else if (answers['q2b'] === 'week3' && answers['q2c'] === 'one' && answers['q2d'] === 'yes') {
+                    needsEC = false;
+                    reason = 'Woche 3, nur 1 Tablette vergessen, korrekte Einnahme letzte 7 Tage';
+                }
+            }
+            
+            // Progestin pill logic
+            if (answers.q1 === 'progestin-pill') {
+                if (answers['q3a'] === 'after7' && answers['q3b'] === 'one-correct') {
+                    needsEC = false;
+                    reason = 'Ab 2. Anwendungswoche, nur 1 Tablette vergessen, korrekte Einnahme letzte 7 Tage';
+                }
+            }
+            
+            // Ring logic
+            if (answers.q1 === 'ring') {
+                if (answers['q4a'] === 'out-3h' && answers['q4b'] === 'week3' && answers['q4c'] === 'yes') {
+                    needsEC = false;
+                    reason = '3. Anwendungswoche, korrekte Anwendung letzte 7 Tage';
+                }
+            }
+            
+            // Patch logic
+            if (answers.q1 === 'patch') {
+                if (answers['q5a'] === 'removal-forgotten') {
+                    needsEC = false;
+                    reason = 'Vergessen des Entfernens des 3. Pflasters';
+                }
+            }
+            
+            // Return result based on whether EC is needed
+            if (!needsEC) {
+                return {
+                    class: 'result-no-nk',
+                    title: '✅ Keine Notfallkontrazeption nötig',
+                    content: `
+                        <p><strong>Grund:</strong> ${reason}</p>
+                        <p><strong>Empfehlung:</strong></p>
+                        <ul>
+                            <li>Vergessene Tablette/Methode sobald als möglich nachholen</li>
+                            <li>Einnahme zur gewohnten Zeit weiterführen</li>
+                            ${answers.q1 === 'combined-pill' && answers['q2b'] === 'week3' ? 
+                                '<li>2 Methoden möglich (siehe IENK-Protokoll)</li>' : 
+                                '<li>Zusätzlich 7 Tage mit Kondom verhüten</li>'}
+                        </ul>
+                        <p><strong>Hinweis:</strong> Detaillierte Anweisungen siehe IENK "Differenziertes Vorgehen" Protokoll</p>
+                    `
+                };
+            }
+            
+            // Emergency contraception needed
+            if (timeFrame === 'over120h') {
+                return {
+                    class: 'result-no-nk',
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: `
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko > 120 Stunden</p>
+                        <p><strong>Empfehlung:</strong> Kupferspirale als Notfallkontrazeption</p>
+                        <p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>
+                    `
+                };
+            }
+            
+            // Standard EC recommendations
+            if (timeFrame === '0-72h') {
+                let instructions = getInstructionsForContraceptive();
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg empfohlen',
+                    content: `
+                        <p><strong>1. Wahl:</strong> LNG 1,5 mg</p>
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko ≤ 72h</p>
+                        <p><strong>Spezielle Anweisungen für hormonelle Verhütung:</strong></p>
+                        ${instructions}
+                        <ul>
+                            <li>Sofortige Einnahme empfohlen</li>
+                            <li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li>
+                        </ul>
+                    `
+                };
+            } else {
+                let instructions = getInstructionsForContraceptive();
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg empfohlen',
+                    content: `
+                        <p><strong>1. Wahl:</strong> UPA 30 mg</p>
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko 73-120h</p>
+                        <p><strong>Spezielle Anweisungen für hormonelle Verhütung:</strong></p>
+                        ${instructions}
+                        <ul>
+                            <li>Sofortige Einnahme empfohlen</li>
+                            <li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li>
+                        </ul>
+                    `
+                };
+            }
+        }
+        
+        function getInstructionsForContraceptive() {
+            const timeFrame = answers.q6;
+            
+            if (answers.q1 === 'combined-pill') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
+                            <li>Einnahme aus begonnener Packung weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Vergessene Tabletten NICHT nachholen</li>
+                            <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
+                            <li>Hinweis: Entzugsblutung ${answers['q2b'] === 'week1' ? 'unwahrscheinlich' : 'möglich'}</li>
+                        </ul>
+                    `;
+                }
+            } else if (answers.q1 === 'progestin-pill') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
+                            <li>Einnahme aus begonnener Packung weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Vergessene Tabletten NICHT nachholen</li>
+                            <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
+                            <li>Hinweis: Entzugsblutung möglich</li>
+                        </ul>
+                    `;
+                }
+            } else if (answers.q1 === 'ring') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Ring so bald wie möglich erneut einsetzen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Aktuellen Ring verwerfen</li>
+                            <li>Ring-Anwendung 5 Tage unterbrechen</li>
+                            <li>Am 6. Tag nach UPA-Einnahme neuen Ring einsetzen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                }
+            } else if (answers.q1 === 'patch') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
+                            <li>Neues Pflaster aufkleben (neuer Zyklus, neuer Wechseltag)</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
+                            <li>Pflaster-Anwendung 5 Tage pausieren</li>
+                            <li>Am 6. Tag nach UPA-Einnahme neues Pflaster aufkleben</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                }
+            }
+            
+            return '<p>Siehe IENK-Protokoll für detaillierte Anweisungen</p>';
+        }
+        
+        function restart() {
+            currentQuestion = 1;
+            answers = {};
+            
+            // Reset selections
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            
+            // Hide result and show navigation
+            document.getElementById('result').classList.remove('show');
+            document.querySelector('.navigation').style.display = 'flex';
+            
+            showQuestion(1);
+        }
+        
+        // Event handlers
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('option')) {
+                const question = e.target.closest('.question');
+                question.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                e.target.classList.add('selected');
+                document.getElementById('nextBtn').disabled = false;
+            }
+        });
+        
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>

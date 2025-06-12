@@ -1,0 +1,2173 @@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        let currentQuestion = 1;
+        let answers = {};
+        const totalQuestions = 8;
+        
+        function updateProgress() {
+            const progress = (currentQuestion <= totalQuestions ? currentQuestion / totalQuestions : 1) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function showQuestion(questionNum) {
+            // Hide all questions
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            
+            // Show current question
+            const questionElement = document.getElementById('q' + questionNum);
+            if (questionElement) {
+                questionElement.classList.add('active');
+                
+                // Handle different input types
+                if (questionNum === '4b') {
+                    const dateInput = document.getElementById('menstruationDate');
+                    document.getElementById('nextBtn').disabled = !dateInput.value;
+                    document.getElementById('nextBtn').style.display = 'block'; // Show button for date input
+                } else if (questionNum === '4e') {
+                    const cycleDurationInput = document.getElementById('cycleDuration');
+                    document.getElementById('nextBtn').disabled = !cycleDurationInput.value;
+                    document.getElementById('nextBtn').style.display = 'block'; // Show button for number input
+                } else {
+                    // For option questions, hide the next button (auto-advance)
+                    document.getElementById('nextBtn').style.display = 'none';
+                }
+            }
+            
+            // Update navigation buttons - always keep prevBtn enabled logic
+            document.getElementById('prevBtn').disabled = questionNum === 1;
+            document.getElementById('prevBtn').style.display = 'block'; // Always show back button
+            updateProgress();
+        }
+        
+        function nextQuestion() {
+            const currentQ = document.getElementById('q' + currentQuestion);
+            
+            // Handle special input fields
+            if (currentQuestion === '4b') {
+                const dateInput = document.getElementById('menstruationDate');
+                if (!dateInput.value) return;
+                answers['q4b'] = dateInput.value;
+                currentQuestion = '4c';
+                showQuestion(currentQuestion);
+                return;
+            }
+            
+            if (currentQuestion === '4e') {
+                const cycleDurationInput = document.getElementById('cycleDuration');
+                if (!cycleDurationInput.value) return;
+                answers['q4e'] = cycleDurationInput.value;
+                currentQuestion = 5; // Go to BMI
+                showQuestion(currentQuestion);
+                return;
+            }
+            
+            const selected = currentQ ? currentQ.querySelector('.option.selected') : null;
+            if (!selected) return;
+            
+            answers['q' + currentQuestion] = selected.dataset.value;
+            
+            // Main navigation logic
+            if (currentQuestion === 1 && answers.q1 === 'under16') {
+                currentQuestion = 9; // Urteilsfähigkeit
+            } else if (currentQuestion === 9) {
+                if (answers.q9 === 'no') {
+                    showResult();
+                    return;
+                } else {
+                    currentQuestion = 2;
+                }
+            } else if (currentQuestion === 3 && answers.q3 === 'hormonal-failure') {
+                currentQuestion = '3b'; // Art der hormonellen Verhütung
+            } else if (currentQuestion === '3b') {
+                // Navigate based on contraceptive type
+                if (answers['q3b'] === 'combined-pill') {
+                    currentQuestion = '3c';
+                } else if (answers['q3b'] === 'progestin-pill') {
+                    currentQuestion = '3g';
+                } else if (answers['q3b'] === 'ring') {
+                    currentQuestion = '3i';
+                } else if (answers['q3b'] === 'patch') {
+                    currentQuestion = '3l';
+                }
+            } else if (currentQuestion === '3c') {
+                if (answers['q3c'] === 'newer') {
+                    showNewerContraceptiveResult();
+                    return;
+                } else {
+                    currentQuestion = '3d';
+                }
+            } else if (currentQuestion === '3d') {
+                if (answers['q3d'] === 'week1') {
+                    currentQuestion = '3m'; // Week 1 always needs timing
+                } else {
+                    currentQuestion = '3e'; // Week 2/3 check tablets
+                }
+            } else if (currentQuestion === '3e') {
+                if (answers['q3e'] === 'multiple') {
+                    currentQuestion = '3m'; // Multiple tablets always need EC
+                } else {
+                    currentQuestion = '3f'; // Single tablet check last 7 days
+                }
+            } else if (currentQuestion === '3f') {
+                currentQuestion = '3m'; // Go to timing
+            } else if (currentQuestion === '3g') {
+                if (answers['q3g'] === 'first7') {
+                    currentQuestion = '3m'; // First 7 always need timing
+                } else {
+                    currentQuestion = '3h'; // Check details
+                }
+            } else if (currentQuestion === '3h') {
+                currentQuestion = '3m'; // Go to timing
+            } else if (currentQuestion === '3i') {
+                if (answers['q3i'] === 'out-3h') {
+                    currentQuestion = '3j'; // Check week
+                } else {
+                    currentQuestion = '3m'; // Other problems need timing
+                }
+            } else if (currentQuestion === '3j') {
+                if (answers['q3j'] === 'week3') {
+                    currentQuestion = '3k'; // Check correct application
+                } else {
+                    currentQuestion = '3m'; // Week 1/2 need timing
+                }
+            } else if (currentQuestion === '3k') {
+                currentQuestion = '3m'; // Go to timing
+            } else if (currentQuestion === '3l') {
+                currentQuestion = '3m'; // All patch problems need timing
+            } else if (currentQuestion === '3m') {
+                currentQuestion = '4a'; // Continue with standard flow
+            } else if (currentQuestion === 3 && answers.q3 !== 'hormonal-failure') {
+                currentQuestion = '4a'; // Skip hormonal questions
+            } else if (currentQuestion === '4a') {
+                currentQuestion = '4b';
+            } else if (currentQuestion === '4c') {
+                currentQuestion = '4d';
+            } else if (currentQuestion === '4d') {
+                if (answers['q4d'] === 'yes') {
+                    currentQuestion = '4e';
+                } else {
+                    currentQuestion = 5; // BMI
+                }
+            } else if (currentQuestion === 8 && answers.q8 === 'same-cycle') {
+                currentQuestion = '8b';
+            } else if (currentQuestion === '8b' || (currentQuestion === 8 && answers.q8 !== 'same-cycle')) {
+                showResult();
+                return;
+            } else {
+                currentQuestion++;
+            }
+            
+            if (currentQuestion > totalQuestions) {
+                showResult();
+            } else {
+                showQuestion(currentQuestion);
+            }
+        }
+        
+        function previousQuestion() {
+            if (currentQuestion > 1) {
+                // Handle complex navigation backwards - simplified for now
+                if (currentQuestion === 9) {
+                    currentQuestion = 1;
+                } else if (currentQuestion === 2 && answers.q1 === 'under16') {
+                    currentQuestion = 9;
+                } else if (currentQuestion === '3b') {
+                    currentQuestion = 3;
+                } else if (currentQuestion === '4a') {
+                    if (answers.q3 === 'hormonal-failure') {
+                        currentQuestion = '3m';
+                    } else {
+                        currentQuestion = 3;
+                    }
+                } else if (currentQuestion === '4b') {
+                    currentQuestion = '4a';
+                } else if (currentQuestion === '4c') {
+                    currentQuestion = '4b';
+                } else if (currentQuestion === '4d') {
+                    currentQuestion = '4c';
+                } else if (currentQuestion === '4e') {
+                    currentQuestion = '4d';
+                } else if (currentQuestion === 5) {
+                    currentQuestion = answers['q4d'] === 'yes' ? '4e' : '4d';
+                } else if (currentQuestion === '8b') {
+                    currentQuestion = 8;
+                } else {
+                    currentQuestion--;
+                }
+                showQuestion(currentQuestion);
+            }
+        }
+        
+        function showNewerContraceptiveResult() {
+            // Hide questions and navigation
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.querySelector('.navigation').style.display = 'none';
+            
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.className = 'result show result-no-nk';
+            resultTitle.textContent = '📋 Fachinformation konsultieren';
+            resultContent.innerHTML = `
+                <p><strong>Hinweis:</strong> Für neuere orale Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.) gelten die Standard-Regeln nicht.</p>
+                <p><strong>Empfehlung:</strong> Bitte konsultieren Sie die spezifische Fachinformation des verwendeten Präparats.</p>
+                <p><strong>Allgemeine Regel:</strong> Bei Unsicherheit sollte eine Notfallkontrazeption in Betracht gezogen werden.</p>
+            `;
+        }
+        
+        function showResult() {
+            // Hide questions and navigation
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.querySelector('.navigation').style.display = 'none';
+            
+            const result = calculateResult();
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.className = 'result show ' + result.class;
+            resultTitle.textContent = result.title;
+            resultContent.innerHTML = result.content;
+            
+            updateProgress();
+        }
+        
+        function calculateResult() {
+            // Calculate ovulation warning
+            let ovulationWarning = '';
+            if (answers['q4b'] && answers['q4d'] === 'yes' && answers['q4e']) {
+                const menstruationDate = new Date(answers['q4b']);
+                const today = new Date();
+                const cycleDuration = parseInt(answers['q4e']);
+                const daysSinceLastPeriod = Math.floor((today - menstruationDate) / (1000 * 60 * 60 * 24));
+                const expectedOvulationDay = cycleDuration / 2;
+                const daysDifferenceFromOvulation = Math.abs(daysSinceLastPeriod - expectedOvulationDay);
+                
+                if (daysDifferenceFromOvulation <= 5 && answers['q4c'] === 'normal') {
+                    ovulationWarning = '<p><strong>⚠️ Hinweis:</strong> Die Kundin steht kurz vor dem Eisprung, wenn Zyklus normal: UPA in Betracht ziehen.</p>';
+                }
+            }
+            
+            // Check contraindications first
+            if (answers.q7 === 'liver') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Weiterleitung erforderlich',
+                    content: '<p><strong>Grund:</strong> Schwere Leberfunktionsstörung</p><p><strong>Empfehlung:</strong> Kupferspirale als 1. Wahl</p><p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            if (answers.q7 === 'pregnancy') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Keine Abgabe möglich',
+                    content: '<p><strong>Grund:</strong> Schwangerschaft ist Kontraindikation</p><p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            if (answers.q1 === 'under16' && answers.q9 === 'no') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Weiterleitung erforderlich',
+                    content: '<p><strong>Grund:</strong> Patientin < 16 Jahre und nicht urteilsfähig</p><p><strong>Weiterleitung an:</strong> Frauenspital oder Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            // Check if hormonal contraception failure needs special handling
+            if (answers.q3 === 'hormonal-failure') {
+                return calculateHormonalResult();
+            }
+            
+            // Standard flow for non-hormonal cases
+            if (answers.q2 === 'over120h') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Weiterleitung erforderlich',
+                    content: '<p><strong>Grund:</strong> Mehr als 120 Stunden seit uGV</p><p><strong>Empfehlung:</strong> Kupferspirale</p><p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            // Check abnormal menstruation
+            if ((answers['q4c'] === 'lighter' || answers['q4c'] === 'absent') && answers['q4a'] === 'yes-over120h') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Schwangerschaftstest empfohlen',
+                    content: '<p><strong>Grund:</strong> Abnorme Menstruation und uGV vor >21 Tagen</p><p><strong>Empfehlung:</strong> Schwangerschaftstest vor NK-Abgabe</p>'
+                };
+            }
+            
+            // Ectopic pregnancy warning
+            let ectopicWarning = '';
+            if (answers.q8 === 'same-cycle' && answers['q8b'] === 'yes') {
+                ectopicWarning = '<p><strong>⚠️ Warnung:</strong> Erhöhtes Risiko für ektope Schwangerschaft. Über Alarmsymptome informieren.</p>';
+            }
+            
+            // CYP3A4 inductor
+            if (answers.q6 === 'cyp3a4') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Spezielle Situation',
+                    content: '<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> Doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> CYP3A4-Induktor</p>' + ectopicWarning
+                };
+            }
+            
+            // BMI considerations
+            if (answers.q5 === 'over30') {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI > 30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li><li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li></ul>`
+                };
+            }
+            
+            if (answers.q5 === '25-30') {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI 25-30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            }
+            
+            // Drug interactions
+            if (answers.q6 === 'glukokortikoide' || answers.q6 === 'gestagen') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg',
+                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg</p><p><strong>Grund:</strong> Interaktion mit UPA</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            }
+            
+            // Breastfeeding
+            if (answers.q7 === 'breastfeeding') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg',
+                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg (6h Stillpause)</p><p><strong>2. Wahl:</strong> UPA 30 mg (1 Woche Stillpause)</p>${ovulationWarning}${ectopicWarning}`
+                };
+            }
+            
+            // Standard recommendations
+            if (answers.q2 === '0-72h') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg',
+                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg</p><p><strong>Grund:</strong> Schwangerschaftsrisiko ≤ 72h</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            } else {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg',
+                    content: `<p><strong>Empfehlung:</strong> UPA 30 mg</p><p><strong>Grund:</strong> Schwangerschaftsrisiko 73-120h</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            }
+        }
+        
+        function calculateHormonalResult() {
+            const timeFrame = answers['q3m'];
+            
+            if (timeFrame === 'over120h') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: '<p><strong>Grund:</strong> Schwangerschaftsrisiko > 120 Stunden</p><p><strong>Empfehlung:</strong> Kupferspirale als Notfallkontrazeption</p>'
+                };
+            }
+            
+            // Check if no EC needed based on hormonal contraceptive rules
+            let needsEC = true;
+            
+            // Combined pill logic
+            if (answers['q3b'] === 'combined-pill' && answers['q3c'] === 'standard') {
+                if (answers['q3d'] === 'week2' && answers['q3e'] === 'one' && answers['q3f'] === 'yes') {
+                    needsEC = false;
+                } else if (answers['q3d'] === 'week3' && answers['q3e'] === 'one' && answers['q3f'] === 'yes') {
+                    needsEC = false;
+                }
+            }
+            
+            // Progestin pill logic
+            if (answers['q3b'] === 'progestin-pill') {
+                if (answers['q3g'] === 'after7' && answers['q3h'] === 'one-correct') {
+                    needsEC = false;
+                }
+            }
+            
+            // Ring logic
+            if (answers['q3b'] === 'ring') {
+                if (answers['q3i'] === 'out-3h' && answers['q3j'] === 'week3' && answers['q3k'] === 'yes') {
+                    needsEC = false;
+                }
+            }
+            
+            // Patch logic
+            if (answers['q3b'] === 'patch') {
+                if (answers['q3l'] === 'removal-forgotten') {
+                    needsEC = false;
+                }
+            }
+            
+            if (!needsEC) {
+                return {
+                    class: 'result-no-nk',
+                    title: '✅ Keine Notfallkontrazeption nötig',
+                    content: `
+                        <p><strong>Grund:</strong> Nach differenziertem Vorgehen bei hormoneller Verhütung</p>
+                        <p><strong>📋 Empfehlung:</strong> Siehe IENK "Differenziertes Vorgehen" für spezifische Anweisungen</p>
+                        <p><strong>Allgemeine Maßnahmen:</strong></p>
+                        <ul>
+                            <li>Vergessene Methode sobald als möglich nachholen</li>
+                            <li>Anwendung zur gewohnten Zeit weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten (außer bei speziellen Fällen)</li>
+                        </ul>
+                    `
+                };
+            }
+            
+            // EC needed - get hormonal-specific instructions
+            const instructions = getHormonalInstructions();
+            
+            if (timeFrame === '0-72h') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg + Spezielle Anweisungen',
+                    content: `
+                        <p><strong>1. Wahl:</strong> LNG 1,5 mg</p>
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko ≤ 72h</p>
+                        <p><strong>📋 Hormonelle Verhütung - Spezielle Anweisungen:</strong></p>
+                        ${instructions}
+                        <ul>
+                            <li>Sofortige Einnahme empfohlen</li>
+                            <li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li>
+                        </ul>
+                    `
+                };
+            } else {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg + Spezielle Anweisungen',
+                    content: `
+                        <p><strong>1. Wahl:</strong> UPA 30 mg</p>
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko 73-120h</p>
+                        <p><strong>📋 Hormonelle Verhütung - Spezielle Anweisungen:</strong></p>
+                        ${instructions}
+                        <ul>
+                            <li>Sofortige Einnahme empfohlen</li>
+                            <li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li>
+                        </ul>
+                    `
+                };
+            }
+        }
+        
+        function getHormonalInstructions() {
+            const timeFrame = answers['q3m'];
+            const contraceptiveType = answers['q3b'];
+            
+            if (contraceptiveType === 'combined-pill') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
+                            <li>Einnahme aus begonnener Packung weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Vergessene Tabletten NICHT nachholen</li>
+                            <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
+                            <li>Hinweis: Entzugsblutung ${answers['q3d'] === 'week1' ? 'unwahrscheinlich' : 'möglich'}</li>
+                        </ul>
+                    `;
+                }
+            } else if (contraceptiveType === 'progestin-pill') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
+                            <li>Einnahme aus begonnener Packung weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Vergessene Tabletten NICHT nachholen</li>
+                            <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
+                        </ul>
+                    `;
+                }
+            } else if (contraceptiveType === 'ring') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Ring so bald wie möglich erneut einsetzen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Aktuellen Ring verwerfen</li>
+                            <li>Ring-Anwendung 5 Tage unterbrechen</li>
+                            <li>Am 6. Tag nach UPA-Einnahme neuen Ring einsetzen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                }
+            } else if (contraceptiveType === 'patch') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
+                            <li>Neues Pflaster aufkleben (neuer Zyklus, neuer Wechseltag)</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
+                            <li>Pflaster-Anwendung 5 Tage pausieren</li>
+                            <li>Am 6. Tag nach UPA-Einnahme neues Pflaster aufkleben</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                }
+            }
+            
+            return '<p>Siehe IENK-Protokoll für detaillierte Anweisungen</p>';
+        }
+        
+        function restart() {
+            currentQuestion = 1;
+            answers = {};
+            
+            // Reset selections and inputs
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('menstruationDate').value = '';
+            document.getElementById('cycleDuration').value = '';
+            
+            // Hide result and show navigation
+            document.getElementById('result').classList.remove('show');
+            document.querySelector('.navigation').style.display = 'flex';
+            
+            // Reset navigation buttons
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('prevBtn').style.display = 'block';
+            
+            showQuestion(1);
+        }
+        
+        // Event handlers with auto-advance
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('option')) {
+                const question = e.target.closest('.question');
+                question.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                e.target.classList.add('selected');
+                
+                // Auto-advance after short delay
+                setTimeout(() => {
+                    nextQuestion();
+                }, 500);
+            }
+        });
+        
+        document.getElementById('menstruationDate').addEventListener('change', function() {
+            document.getElementById('nextBtn').disabled = !this.value;
+        });
+        
+        document.getElementById('cycleDuration').addEventListener('change', function() {
+            document.getElementById('nextBtn').disabled = !this.value || this.value < 21 || this.value > 45;
+        });
+        
+        // Initialize
+        updateProgress();
+        
+        // PDF Generation Function
+        function generatePDF() {
+            // Check if jsPDF is available
+            if (typeof window.jspdf === 'undefined') {
+                alert('PDF-Bibliothek wird geladen. Bitte versuchen Sie es in wenigen Sekunden erneut.');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // PDF Settings
+            const margin = 20;
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const lineHeight = 7;
+            let yPosition = margin;
+            
+            // Helper function to add text with line breaks
+            function addText(text, fontSize = 10, isBold = false) {
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = margin;
+                }
+                
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+                
+                const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+                doc.text(lines, margin, yPosition);
+                yPosition += lines.length * lineHeight;
+            }
+            
+            // Header
+            addText('NOTFALLKONTRAZEPTION - BERATUNGSPROTOKOLL', 16, true);
+            addText('Nach IENK-Protokoll', 12);
+            yPosition += 5;
+            
+            // Date and time
+            const now = new Date();
+            addText(`Datum: ${now.toLocaleDateString('de-CH')}`, 10);
+            addText(`Zeit: ${now.toLocaleTimeString('de-CH')}`, 10);
+            yPosition += 10;
+            
+            // Questions and Answers
+            addText('ANAMNESE', 14, true);
+            yPosition += 5;
+            
+            const questionTexts = getQuestionTexts();
+            
+            Object.keys(answers).forEach(questionId => {
+                const questionText = questionTexts[questionId];
+                const answerValue = answers[questionId];
+                const answerText = getAnswerText(questionId, answerValue);
+                
+                if (questionText && answerText) {
+                    addText(`${questionText}`, 10, true);
+                    addText(`→ ${answerText}`, 10);
+                    yPosition += 3;
+                }
+            });
+            
+            yPosition += 10;
+            
+            // Result
+            addText('EMPFEHLUNG', 14, true);
+            yPosition += 5;
+            
+            const resultTitle = document.getElementById('resultTitle').textContent;
+            const resultContent = document.getElementById('resultContent');
+            
+            addText(resultTitle, 12, true);
+            yPosition += 3;
+            
+            // Extract and clean result content
+            const resultText = extractTextFromHTML(resultContent.innerHTML);
+            addText(resultText, 10);
+            
+            yPosition += 10;
+            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 8);
+            addText('Verantwortlich: Apotheker/in ________________________', 8);
+            
+            // Save PDF
+            const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
+            doc.save(fileName);
+        }
+        
+        function getQuestionTexts() {
+            return {
+                'q1': '1. Alter der Patientin',
+                'q2': '2. Stunden seit letztem ungeschütztem Geschlechtsverkehr',
+                'q3': '3. Ursache des Schwangerschaftsrisikos',
+                'q3b': '3b. Art der hormonellen Verhütung',
+                'q3c': '3c. Eigenschaften der kombinierten Pille',
+                'q3d': '3d. Woche des Zyklus (Problem)',
+                'q3e': '3e. Anzahl vergessene Tabletten',
+                'q3f': '3f. Korrekte Einnahme letzte 7 Tage',
+                'q3g': '3g. Phase der Gestagenpille',
+                'q3h': '3h. Vergessene Tabletten und Einnahme',
+                'q3i': '3i. Problem mit Verhütungsring',
+                'q3j': '3j. Anwendungswoche (Ring)',
+                'q3k': '3k. Korrekte Anwendung letzte 7 Tage (Ring)',
+                'q3l': '3l. Problem mit Verhütungspflaster',
+                'q3m': '3m. Zeitpunkt Schwangerschaftsrisiko (hormonell)',
+                'q4a': '4. Weiterer ungeschützter Geschlechtsverkehr',
+                'q4b': '4b. Datum letzte Menstruation',
+                'q4c': '4c. Verlauf letzte Menstruation',
+                'q4d': '4d. Regelmäßiger Zyklus',
+                'q4e': '4e. Zyklusdauer in Tagen',
+                'q5': '5. BMI der Patientin',
+                'q6': '6. Aktuelle Medikation',
+                'q7': '7. Kontraindikationen',
+                'q8': '8. Frühere Notfallkontrazeption',
+                'q8b': '8b. Eileiterschwangerschaft in Anamnese',
+                'q9': 'Urteilsfähigkeit (< 16 Jahre)'
+            };
+        }
+        
+        function getAnswerText(questionId, answerValue) {
+            const answerTexts = {
+                // Q1 - Alter
+                'over16': '≥ 16 Jahre',
+                'under16': '< 16 Jahre',
+                
+                // Q2 - Stunden uGV
+                '0-72h': '0-72 Stunden',
+                '73-120h': '73-120 Stunden',
+                'over120h': '> 120 Stunden',
+                
+                // Q3 - Ursache
+                'no-contraception': 'Keine Verhütung',
+                'condom-failure': 'Kondom gerissen/abgerutscht',
+                'hormonal-failure': 'Versagen der hormonellen Verhütung',
+                
+                // Q3b - Art hormonelle Verhütung
+                'combined-pill': 'Kombinierte orale Kontrazeptiva (Pille)',
+                'progestin-pill': 'Reine Gestagenpille (z.B. Cerazette)',
+                'ring': 'Verhütungsring (z.B. Nuvaring)',
+                'patch': 'Verhütungspflaster (z.B. Evra)',
+                
+                // Q3c - Eigenschaften Pille
+                'standard': 'Standard kombinierte Pille (20-35mcg Ethinylestradiol, 21/7)',
+                'newer': 'Neuere Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.)',
+                
+                // Q3d - Woche
+                'week1': 'Woche 1 (Tabletten 1-7)',
+                'week2': 'Woche 2 (Tabletten 8-14)',
+                'week3': 'Woche 3 (Tabletten 15-21)',
+                
+                // Q3e - Anzahl Tabletten
+                'one': '1 Tablette vergessen',
+                'multiple': '2 oder mehr Tabletten vergessen',
+                
+                // Q3f - Korrekte Einnahme
+                'yes': 'Ja, korrekte Einnahme',
+                'no': 'Nein, fehlerhafte Einnahme',
+                
+                // Q3g - Gestagenpille Phase
+                'first7': 'Ersten 7 Tabletten nach Verhütungsbeginn',
+                'after7': 'Weitere Tabletten (ab 2. Anwendungswoche)',
+                
+                // Q3h - Gestagenpille Details
+                'one-correct': '1 Tablette vergessen + korrekte Einnahme letzte 7 Tage',
+                'multiple-or-incorrect': '≥2 Tabletten vergessen ODER ≥2 in letzten 7 Tagen',
+                
+                // Q3i - Ring Problem
+                'out-3h': 'Ring >3 Std außerhalb der Vagina',
+                'not-changed-4w': 'Ring >4 Wochen nicht gewechselt',
+                'pause-over1w': '>1 Woche Anwendungspause',
+                
+                // Q3j - Ring Woche
+                'week1-2': '1. oder 2. Anwendungswoche',
+                'week3': '3. Anwendungswoche',
+                
+                // Q3l - Pflaster Problem
+                'detached-24h': 'Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen',
+                'interval-7d': 'Pflasterfreies Intervall >7 Tage',
+                'removal-forgotten': 'Vergessen des Entfernens des 3. Pflasters',
+                
+                // Q4a - Weiterer uGV
+                'no': 'Nein',
+                'yes-72h': 'Ja, vor ≤ 72 Stunden',
+                'yes-73-120h': 'Ja, vor 73-120 Stunden',
+                'yes-over120h': 'Ja, vor > 120 Stunden',
+                
+                // Q4c - Verlauf Menstruation
+                'normal': 'Normal',
+                'lighter': 'Leichter/kürzer als gewöhnlich',
+                'absent': 'Ausgeblieben',
+                
+                // Q5 - BMI
+                'under25': '< 25 kg/m²',
+                '25-30': '25-30 kg/m²',
+                'over30': '> 30 kg/m²',
+                
+                // Q6 - Medikation
+                'none': 'Keine relevanten Medikamente',
+                'glukokortikoide': 'Systemische Glukokortikoide',
+                'gestagen': 'Gestagen',
+                'cyp3a4': 'CYP3A4-Induktor',
+                
+                // Q7 - Kontraindikationen
+                'liver': 'Schwere Leberfunktionsstörung',
+                'pregnancy': 'Schwangerschaft',
+                'allergy': 'Allergie gegen LNG/UPA',
+                'breastfeeding': 'Stillzeit',
+                
+                // Q8 - Frühere NK
+                'same-cycle': 'Ja, im gleichen Zyklus',
+                'previous-cycle': 'Ja, in früherem Zyklus'
+            };
+            
+            // Special handling for date and number inputs
+            if (questionId === 'q4b') {
+                return answerValue || 'Nicht angegeben';
+            }
+            if (questionId === 'q4e') {
+                return answerValue ? `${answerValue} Tage` : 'Nicht angegeben';
+            }
+            
+            return answerTexts[answerValue] || answerValue;
+        }
+        
+        function extractTextFromHTML(html) {
+            // Remove HTML tags and clean up text
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Extract text content
+            let text = tempDiv.textContent || tempDiv.innerText || '';
+            
+            // Clean up extra whitespace and line breaks
+            text = text.replace(/\s+/g, ' ').trim();
+            
+            // Replace bullet points and format lists
+            text = text.replace(/•/g, '- ');
+            
+            return text;
+        }
+    </script><!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notfallkontrazeption - Abgabe-Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .question {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            background: #f8faff;
+            display: none;
+        }
+        
+        .question.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .question h3 {
+            color: #2c5aa0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .option {
+            padding: 12px 15px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .option:hover {
+            border-color: #2c5aa0;
+            background: #f0f4ff;
+        }
+        
+        .option.selected {
+            border-color: #2c5aa0;
+            background: #2c5aa0;
+            color: white;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #2c5aa0;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e3c72;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            display: none;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .result.show {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .result-lng {
+            background: #dcfce7;
+            border: 2px solid #16a34a;
+        }
+        
+        .result-upa {
+            background: #fef3c7;
+            border: 2px solid #d97706;
+        }
+        
+        .result-no-nk {
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
+        }
+        
+        .result-referral {
+            background: #fecaca;
+            border: 2px solid #dc2626;
+        }
+        
+        .result h2 {
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        .result-lng h2 { color: #16a34a; }
+        .result-upa h2 { color: #d97706; }
+        .result-no-nk h2 { color: #0284c7; }
+        .result-referral h2 { color: #dc2626; }
+        
+        .result ul {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .result li {
+            margin-bottom: 8px;
+        }
+        
+        .progress {
+            background: #e5e7eb;
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: #2c5aa0;
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+        
+        .restart-btn {
+            margin-top: 20px;
+            background: #6b7280;
+            color: white;
+        }
+        
+        .restart-btn:hover {
+            background: #4b5563;
+        }
+        
+        .input-field {
+            padding: 10px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .info-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Notfallkontrazeption</h1>
+            <p>Digitaler Abgabe-Algorithmus nach IENK-Protokoll</p>
+        </div>
+        
+        <div class="content">
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <!-- Frage 1: Alter -->
+            <div class="question active" id="q1">
+                <h3>1. Alter der Patientin</h3>
+                <div class="options">
+                    <div class="option" data-value="over16">≥ 16 Jahre</div>
+                    <div class="option" data-value="under16">< 16 Jahre</div>
+                </div>
+            </div>
+            
+            <!-- Frage 2: Stunden seit uGV -->
+            <div class="question" id="q2">
+                <h3>2. Stunden seit letztem ungeschütztem Geschlechtsverkehr</h3>
+                <div class="options">
+                    <div class="option" data-value="0-72h">0-72 Stunden</div>
+                    <div class="option" data-value="73-120h">73-120 Stunden</div>
+                    <div class="option" data-value="over120h">> 120 Stunden</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3: Ursache Schwangerschaftsrisiko -->
+            <div class="question" id="q3">
+                <h3>3. Ursache des Schwangerschaftsrisikos</h3>
+                <div class="options">
+                    <div class="option" data-value="no-contraception">Keine Verhütung</div>
+                    <div class="option" data-value="condom-failure">Kondom gerissen/abgerutscht</div>
+                    <div class="option" data-value="hormonal-failure">Versagen der hormonellen Verhütung</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3b: Art der hormonellen Verhütung -->
+            <div class="question" id="q3b">
+                <h3>3b. Art der hormonellen Verhütung</h3>
+                <div class="info-box">
+                    <strong>Hinweis:</strong> Für das differenzierte Vorgehen nach IENK-Protokoll
+                </div>
+                <div class="options">
+                    <div class="option" data-value="combined-pill">Kombinierte orale Kontrazeptiva (Pille)</div>
+                    <div class="option" data-value="progestin-pill">Reine Gestagenpille (z.B. Cerazette)</div>
+                    <div class="option" data-value="ring">Verhütungsring (z.B. Nuvaring)</div>
+                    <div class="option" data-value="patch">Verhütungspflaster (z.B. Evra)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3c: Eigenschaften kombinierte Pille -->
+            <div class="question" id="q3c">
+                <h3>3c. Eigenschaften der kombinierten Pille</h3>
+                <div class="info-box">
+                    <strong>Hinweis:</strong> Nur gültig für Pillen mit 20-35mcg Ethinylestradiol, 21/7 Modell, ohne Placebo-Tabletten.
+                    Nicht gültig für neuere Präparate wie Gyselle petite, Zoely, Qlaira.
+                </div>
+                <div class="options">
+                    <div class="option" data-value="standard">Standard kombinierte Pille (20-35mcg Ethinylestradiol, 21/7)</div>
+                    <div class="option" data-value="newer">Neuere Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3d: Woche im Zyklus -->
+            <div class="question" id="q3d">
+                <h3>3d. In welcher Woche des Zyklus trat das Problem auf?</h3>
+                <div class="options">
+                    <div class="option" data-value="week1">Woche 1 (Tabletten 1-7)</div>
+                    <div class="option" data-value="week2">Woche 2 (Tabletten 8-14)</div>
+                    <div class="option" data-value="week3">Woche 3 (Tabletten 15-21)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3e: Anzahl vergessene Tabletten -->
+            <div class="question" id="q3e">
+                <h3>3e. Wie viele Tabletten wurden vergessen?</h3>
+                <div class="options">
+                    <div class="option" data-value="one">1 Tablette vergessen</div>
+                    <div class="option" data-value="multiple">2 oder mehr Tabletten vergessen</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3f: Korrekte Einnahme letzte 7 Tage -->
+            <div class="question" id="q3f">
+                <h3>3f. Korrekte Einnahme in den letzten 7 Tagen vor dem vergessenen Tag?</h3>
+                <div class="options">
+                    <div class="option" data-value="yes">Ja, korrekte Einnahme in letzten 7 Tagen</div>
+                    <div class="option" data-value="no">Nein, ≥2 Tabletten in letzten 7 Tagen vergessen</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3g: Gestagenpille Phase -->
+            <div class="question" id="q3g">
+                <h3>3g. Phase der Gestagenpille</h3>
+                <div class="options">
+                    <div class="option" data-value="first7">Ersten 7 Tabletten nach Verhütungsbeginn</div>
+                    <div class="option" data-value="after7">Weitere Tabletten (ab 2. Anwendungswoche)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3h: Gestagenpille Details -->
+            <div class="question" id="q3h">
+                <h3>3h. Vergessene Tabletten und Einnahme der letzten 7 Tage</h3>
+                <div class="options">
+                    <div class="option" data-value="one-correct">1 Tablette vergessen + korrekte Einnahme letzte 7 Tage</div>
+                    <div class="option" data-value="multiple-or-incorrect">≥2 Tabletten vergessen ODER ≥2 Tabletten in letzten 7 Tagen vergessen</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3i: Ring Problem -->
+            <div class="question" id="q3i">
+                <h3>3i. Problem mit dem Verhütungsring</h3>
+                <div class="options">
+                    <div class="option" data-value="out-3h">Ring >3 Std außerhalb der Vagina</div>
+                    <div class="option" data-value="not-changed-4w">Ring >4 Wochen nicht gewechselt</div>
+                    <div class="option" data-value="pause-over1w">>1 Woche Anwendungspause</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3j: Ring Anwendungswoche -->
+            <div class="question" id="q3j">
+                <h3>3j. In welcher Anwendungswoche trat das Problem auf?</h3>
+                <div class="options">
+                    <div class="option" data-value="week1-2">1. oder 2. Anwendungswoche</div>
+                    <div class="option" data-value="week3">3. Anwendungswoche</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3k: Ring korrekte Anwendung -->
+            <div class="question" id="q3k">
+                <h3>3k. Korrekte Anwendung in den letzten 7 Tagen?</h3>
+                <div class="options">
+                    <div class="option" data-value="yes">Ja, korrekte Anwendung letzte 7 Tage</div>
+                    <div class="option" data-value="no">Nein, fehlerhafte Anwendung letzte 7 Tage</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3l: Pflaster Problem -->
+            <div class="question" id="q3l">
+                <h3>3l. Problem mit dem Verhütungspflaster</h3>
+                <div class="options">
+                    <div class="option" data-value="detached-24h">Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen</div>
+                    <div class="option" data-value="interval-7d">Pflasterfreies Intervall >7 Tage</div>
+                    <div class="option" data-value="removal-forgotten">Vergessen des Entfernens des 3. Pflasters (Tag 22)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 3m: Zeitpunkt Schwangerschaftsrisiko hormonell -->
+            <div class="question" id="q3m">
+                <h3>3m. Zeitpunkt des Schwangerschaftsrisikos</h3>
+                <div class="info-box">
+                    <strong>Wichtig:</strong> Der Zeitpunkt des späteren Ereignisses (uGV oder Versagen hV) ist maßgebend.
+                </div>
+                <div class="options">
+                    <div class="option" data-value="0-72h">≤ 72 Stunden</div>
+                    <div class="option" data-value="73-120h">73-120 Stunden</div>
+                    <div class="option" data-value="over120h">> 120 Stunden</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4a: Weiterer uGV -->
+            <div class="question" id="q4a">
+                <h3>4. Weiterer ungeschützter Geschlechtsverkehr seit letzter Menstruation?</h3>
+                <div class="options">
+                    <div class="option" data-value="no">Nein</div>
+                    <div class="option" data-value="yes-72h">Ja, vor ≤ 72 Stunden</div>
+                    <div class="option" data-value="yes-73-120h">Ja, vor 73-120 Stunden</div>
+                    <div class="option" data-value="yes-over120h">Ja, vor > 120 Stunden</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4b: Datum letzte Menstruation -->
+            <div class="question" id="q4b">
+                <h3>4b. Beginn der letzten Menstruation</h3>
+                <label for="menstruationDate" style="display: block; margin-bottom: 8px; font-weight: 600;">Datum der letzten Menstruation:</label>
+                <input type="date" id="menstruationDate" class="input-field" style="width: 200px;">
+            </div>
+            
+            <!-- Frage 4c: Verlauf Menstruation -->
+            <div class="question" id="q4c">
+                <h3>4c. Verlauf der letzten Menstruation</h3>
+                <div class="options">
+                    <div class="option" data-value="normal">Normal</div>
+                    <div class="option" data-value="lighter">Leichter/kürzer als gewöhnlich</div>
+                    <div class="option" data-value="absent">Ausgeblieben</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4d: Regelmäßiger Zyklus -->
+            <div class="question" id="q4d">
+                <h3>4d. Ist Ihr Zyklus regelmäßig?</h3>
+                <div class="options">
+                    <div class="option" data-value="no">Nein, unregelmäßig</div>
+                    <div class="option" data-value="yes">Ja, regelmäßig</div>
+                </div>
+            </div>
+            
+            <!-- Frage 4e: Zyklusdauer -->
+            <div class="question" id="q4e">
+                <h3>4e. Zyklusdauer in Tagen</h3>
+                <label for="cycleDuration" style="display: block; margin-bottom: 8px; font-weight: 600;">Wie viele Tage dauert Ihr Zyklus normalerweise?</label>
+                <input type="number" id="cycleDuration" min="21" max="45" class="input-field" style="width: 100px;">
+                <span style="margin-left: 10px; color: #666;">Tage</span>
+            </div>
+            
+            <!-- Frage 5: BMI -->
+            <div class="question" id="q5">
+                <h3>5. BMI der Patientin</h3>
+                <div class="options">
+                    <div class="option" data-value="under25">< 25 kg/m²</div>
+                    <div class="option" data-value="25-30">25-30 kg/m²</div>
+                    <div class="option" data-value="over30">> 30 kg/m²</div>
+                </div>
+            </div>
+            
+            <!-- Frage 6: Medikamente -->
+            <div class="question" id="q6">
+                <h3>6. Aktuelle Medikation</h3>
+                <div class="options">
+                    <div class="option" data-value="none">Keine relevanten Medikamente</div>
+                    <div class="option" data-value="glukokortikoide">Systemische Glukokortikoide</div>
+                    <div class="option" data-value="gestagen">Gestagen</div>
+                    <div class="option" data-value="cyp3a4">CYP3A4-Induktor (Rifampicin, Carbamazepin, etc.)</div>
+                </div>
+            </div>
+            
+            <!-- Frage 7: Kontraindikationen -->
+            <div class="question" id="q7">
+                <h3>7. Kontraindikationen vorhanden?</h3>
+                <div class="options">
+                    <div class="option" data-value="none">Keine</div>
+                    <div class="option" data-value="liver">Schwere Leberfunktionsstörung</div>
+                    <div class="option" data-value="pregnancy">Schwangerschaft</div>
+                    <div class="option" data-value="allergy">Allergie gegen LNG/UPA</div>
+                    <div class="option" data-value="breastfeeding">Stillzeit</div>
+                </div>
+            </div>
+            
+            <!-- Frage 8: Frühere NK -->
+            <div class="question" id="q8">
+                <h3>8. Bereits früher Notfallkontrazeption eingenommen?</h3>
+                <div class="options">
+                    <div class="option" data-value="no">Nein</div>
+                    <div class="option" data-value="same-cycle">Ja, im gleichen Zyklus</div>
+                    <div class="option" data-value="previous-cycle">Ja, in früherem Zyklus</div>
+                </div>
+            </div>
+            
+            <!-- Frage 8b: Eileiterschwangerschaft -->
+            <div class="question" id="q8b">
+                <h3>8b. Eileiterschwangerschaft in der Anamnese?</h3>
+                <div class="options">
+                    <div class="option" data-value="no">Nein</div>
+                    <div class="option" data-value="yes">Ja</div>
+                </div>
+            </div>
+            
+            <!-- Frage 9: Urteilsfähigkeit -->
+            <div class="question" id="q9">
+                <h3>Urteilsfähigkeit gegeben?</h3>
+                <p style="color: #666; margin-bottom: 15px; font-style: italic;">Nur bei Patientinnen < 16 Jahre</p>
+                <div class="options">
+                    <div class="option" data-value="yes">Ja, urteilsfähig</div>
+                    <div class="option" data-value="no">Nein, nicht urteilsfähig</div>
+                </div>
+            </div>
+            
+            <!-- Ergebnis -->
+            <div class="result" id="result">
+                <h2 id="resultTitle"></h2>
+                <div id="resultContent"></div>
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button class="btn restart-btn" onclick="restart()">Neue Beratung starten</button>
+                    <button class="btn btn-primary" onclick="generatePDF()" style="background: #059669;">📄 PDF erstellen</button>
+                </div>
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>Zurück</button>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Weiter</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        let currentQuestion = 1;
+        let answers = {};
+        const totalQuestions = 8;
+        
+        function updateProgress() {
+            const progress = (currentQuestion <= totalQuestions ? currentQuestion / totalQuestions : 1) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function showQuestion(questionNum) {
+            // Hide all questions
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            
+            // Show current question
+            const questionElement = document.getElementById('q' + questionNum);
+            if (questionElement) {
+                questionElement.classList.add('active');
+                
+                // Handle different input types
+                if (questionNum === '4b') {
+                    const dateInput = document.getElementById('menstruationDate');
+                    document.getElementById('nextBtn').disabled = !dateInput.value;
+                } else if (questionNum === '4e') {
+                    const cycleDurationInput = document.getElementById('cycleDuration');
+                    document.getElementById('nextBtn').disabled = !cycleDurationInput.value;
+                } else {
+                    const hasSelection = questionElement.querySelector('.option.selected');
+                    document.getElementById('nextBtn').disabled = !hasSelection;
+                }
+            }
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = questionNum === 1;
+            updateProgress();
+        }
+        
+        function nextQuestion() {
+            const currentQ = document.getElementById('q' + currentQuestion);
+            
+            // Handle special input fields
+            if (currentQuestion === '4b') {
+                const dateInput = document.getElementById('menstruationDate');
+                if (!dateInput.value) return;
+                answers['q4b'] = dateInput.value;
+                currentQuestion = '4c';
+                showQuestion(currentQuestion);
+                return;
+            }
+            
+            if (currentQuestion === '4e') {
+                const cycleDurationInput = document.getElementById('cycleDuration');
+                if (!cycleDurationInput.value) return;
+                answers['q4e'] = cycleDurationInput.value;
+                currentQuestion = 5; // Go to BMI
+                showQuestion(currentQuestion);
+                return;
+            }
+            
+            const selected = currentQ ? currentQ.querySelector('.option.selected') : null;
+            if (!selected) return;
+            
+            answers['q' + currentQuestion] = selected.dataset.value;
+            
+            // Main navigation logic
+            if (currentQuestion === 1 && answers.q1 === 'under16') {
+                currentQuestion = 9; // Urteilsfähigkeit
+            } else if (currentQuestion === 9) {
+                if (answers.q9 === 'no') {
+                    showResult();
+                    return;
+                } else {
+                    currentQuestion = 2;
+                }
+            } else if (currentQuestion === 3 && answers.q3 === 'hormonal-failure') {
+                currentQuestion = '3b'; // Art der hormonellen Verhütung
+            } else if (currentQuestion === '3b') {
+                // Navigate based on contraceptive type
+                if (answers['q3b'] === 'combined-pill') {
+                    currentQuestion = '3c';
+                } else if (answers['q3b'] === 'progestin-pill') {
+                    currentQuestion = '3g';
+                } else if (answers['q3b'] === 'ring') {
+                    currentQuestion = '3i';
+                } else if (answers['q3b'] === 'patch') {
+                    currentQuestion = '3l';
+                }
+            } else if (currentQuestion === '3c') {
+                if (answers['q3c'] === 'newer') {
+                    showNewerContraceptiveResult();
+                    return;
+                } else {
+                    currentQuestion = '3d';
+                }
+            } else if (currentQuestion === '3d') {
+                if (answers['q3d'] === 'week1') {
+                    currentQuestion = '3m'; // Week 1 always needs timing
+                } else {
+                    currentQuestion = '3e'; // Week 2/3 check tablets
+                }
+            } else if (currentQuestion === '3e') {
+                if (answers['q3e'] === 'multiple') {
+                    currentQuestion = '3m'; // Multiple tablets always need EC
+                } else {
+                    currentQuestion = '3f'; // Single tablet check last 7 days
+                }
+            } else if (currentQuestion === '3f') {
+                currentQuestion = '3m'; // Go to timing
+            } else if (currentQuestion === '3g') {
+                if (answers['q3g'] === 'first7') {
+                    currentQuestion = '3m'; // First 7 always need timing
+                } else {
+                    currentQuestion = '3h'; // Check details
+                }
+            } else if (currentQuestion === '3h') {
+                currentQuestion = '3m'; // Go to timing
+            } else if (currentQuestion === '3i') {
+                if (answers['q3i'] === 'out-3h') {
+                    currentQuestion = '3j'; // Check week
+                } else {
+                    currentQuestion = '3m'; // Other problems need timing
+                }
+            } else if (currentQuestion === '3j') {
+                if (answers['q3j'] === 'week3') {
+                    currentQuestion = '3k'; // Check correct application
+                } else {
+                    currentQuestion = '3m'; // Week 1/2 need timing
+                }
+            } else if (currentQuestion === '3k') {
+                currentQuestion = '3m'; // Go to timing
+            } else if (currentQuestion === '3l') {
+                currentQuestion = '3m'; // All patch problems need timing
+            } else if (currentQuestion === '3m') {
+                currentQuestion = '4a'; // Continue with standard flow
+            } else if (currentQuestion === 3 && answers.q3 !== 'hormonal-failure') {
+                currentQuestion = '4a'; // Skip hormonal questions
+            } else if (currentQuestion === '4a') {
+                currentQuestion = '4b';
+            } else if (currentQuestion === '4c') {
+                currentQuestion = '4d';
+            } else if (currentQuestion === '4d') {
+                if (answers['q4d'] === 'yes') {
+                    currentQuestion = '4e';
+                } else {
+                    currentQuestion = 5; // BMI
+                }
+            } else if (currentQuestion === 8 && answers.q8 === 'same-cycle') {
+                currentQuestion = '8b';
+            } else if (currentQuestion === '8b' || (currentQuestion === 8 && answers.q8 !== 'same-cycle')) {
+                showResult();
+                return;
+            } else {
+                currentQuestion++;
+            }
+            
+            if (currentQuestion > totalQuestions) {
+                showResult();
+            } else {
+                showQuestion(currentQuestion);
+            }
+        }
+        
+        function previousQuestion() {
+            if (currentQuestion > 1) {
+                // Handle complex navigation backwards - simplified for now
+                if (currentQuestion === 9) {
+                    currentQuestion = 1;
+                } else if (currentQuestion === 2 && answers.q1 === 'under16') {
+                    currentQuestion = 9;
+                } else if (currentQuestion === '3b') {
+                    currentQuestion = 3;
+                } else if (currentQuestion === '4a') {
+                    if (answers.q3 === 'hormonal-failure') {
+                        currentQuestion = '3m';
+                    } else {
+                        currentQuestion = 3;
+                    }
+                } else if (currentQuestion === '4b') {
+                    currentQuestion = '4a';
+                } else if (currentQuestion === '4c') {
+                    currentQuestion = '4b';
+                } else if (currentQuestion === '4d') {
+                    currentQuestion = '4c';
+                } else if (currentQuestion === '4e') {
+                    currentQuestion = '4d';
+                } else if (currentQuestion === 5) {
+                    currentQuestion = answers['q4d'] === 'yes' ? '4e' : '4d';
+                } else if (currentQuestion === '8b') {
+                    currentQuestion = 8;
+                } else {
+                    currentQuestion--;
+                }
+                showQuestion(currentQuestion);
+            }
+        }
+        
+        function showNewerContraceptiveResult() {
+            // Hide questions and navigation
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.querySelector('.navigation').style.display = 'none';
+            
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.className = 'result show result-no-nk';
+            resultTitle.textContent = '📋 Fachinformation konsultieren';
+            resultContent.innerHTML = `
+                <p><strong>Hinweis:</strong> Für neuere orale Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.) gelten die Standard-Regeln nicht.</p>
+                <p><strong>Empfehlung:</strong> Bitte konsultieren Sie die spezifische Fachinformation des verwendeten Präparats.</p>
+                <p><strong>Allgemeine Regel:</strong> Bei Unsicherheit sollte eine Notfallkontrazeption in Betracht gezogen werden.</p>
+            `;
+        }
+        
+        function showResult() {
+            // Hide questions and navigation
+            document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+            document.querySelector('.navigation').style.display = 'none';
+            
+            const result = calculateResult();
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.className = 'result show ' + result.class;
+            resultTitle.textContent = result.title;
+            resultContent.innerHTML = result.content;
+            
+            updateProgress();
+        }
+        
+        function calculateResult() {
+            // Calculate ovulation warning
+            let ovulationWarning = '';
+            if (answers['q4b'] && answers['q4d'] === 'yes' && answers['q4e']) {
+                const menstruationDate = new Date(answers['q4b']);
+                const today = new Date();
+                const cycleDuration = parseInt(answers['q4e']);
+                const daysSinceLastPeriod = Math.floor((today - menstruationDate) / (1000 * 60 * 60 * 24));
+                const expectedOvulationDay = cycleDuration / 2;
+                const daysDifferenceFromOvulation = Math.abs(daysSinceLastPeriod - expectedOvulationDay);
+                
+                if (daysDifferenceFromOvulation <= 5 && answers['q4c'] === 'normal') {
+                    ovulationWarning = '<p><strong>⚠️ Hinweis:</strong> Die Kundin steht kurz vor dem Eisprung, wenn Zyklus normal: UPA in Betracht ziehen.</p>';
+                }
+            }
+            
+            // Check contraindications first
+            if (answers.q7 === 'liver') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Weiterleitung erforderlich',
+                    content: '<p><strong>Grund:</strong> Schwere Leberfunktionsstörung</p><p><strong>Empfehlung:</strong> Kupferspirale als 1. Wahl</p><p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            if (answers.q7 === 'pregnancy') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Keine Abgabe möglich',
+                    content: '<p><strong>Grund:</strong> Schwangerschaft ist Kontraindikation</p><p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            if (answers.q1 === 'under16' && answers.q9 === 'no') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Weiterleitung erforderlich',
+                    content: '<p><strong>Grund:</strong> Patientin < 16 Jahre und nicht urteilsfähig</p><p><strong>Weiterleitung an:</strong> Frauenspital oder Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            // Check if hormonal contraception failure needs special handling
+            if (answers.q3 === 'hormonal-failure') {
+                return calculateHormonalResult();
+            }
+            
+            // Standard flow for non-hormonal cases
+            if (answers.q2 === 'over120h') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Weiterleitung erforderlich',
+                    content: '<p><strong>Grund:</strong> Mehr als 120 Stunden seit uGV</p><p><strong>Empfehlung:</strong> Kupferspirale</p><p><strong>Weiterleitung an:</strong> Frauenarzt/Frauenärztin</p>'
+                };
+            }
+            
+            // Check abnormal menstruation
+            if ((answers['q4c'] === 'lighter' || answers['q4c'] === 'absent') && answers['q4a'] === 'yes-over120h') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Schwangerschaftstest empfohlen',
+                    content: '<p><strong>Grund:</strong> Abnorme Menstruation und uGV vor >21 Tagen</p><p><strong>Empfehlung:</strong> Schwangerschaftstest vor NK-Abgabe</p>'
+                };
+            }
+            
+            // Ectopic pregnancy warning
+            let ectopicWarning = '';
+            if (answers.q8 === 'same-cycle' && answers['q8b'] === 'yes') {
+                ectopicWarning = '<p><strong>⚠️ Warnung:</strong> Erhöhtes Risiko für ektope Schwangerschaft. Über Alarmsymptome informieren.</p>';
+            }
+            
+            // CYP3A4 inductor
+            if (answers.q6 === 'cyp3a4') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Spezielle Situation',
+                    content: '<p><strong>1. Wahl:</strong> Kupferspirale</p><p><strong>2. Wahl:</strong> Doppelte Dosis LNG (3 mg)</p><p><strong>Grund:</strong> CYP3A4-Induktor</p>' + ectopicWarning
+                };
+            }
+            
+            // BMI considerations
+            if (answers.q5 === 'over30') {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI > 30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li><li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li></ul>`
+                };
+            }
+            
+            if (answers.q5 === '25-30') {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg empfohlen',
+                    content: `<p><strong>1. Wahl:</strong> UPA 30 mg</p><p><strong>Grund:</strong> BMI 25-30 kg/m²</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            }
+            
+            // Drug interactions
+            if (answers.q6 === 'glukokortikoide' || answers.q6 === 'gestagen') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg',
+                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg</p><p><strong>Grund:</strong> Interaktion mit UPA</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            }
+            
+            // Breastfeeding
+            if (answers.q7 === 'breastfeeding') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg',
+                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg (6h Stillpause)</p><p><strong>2. Wahl:</strong> UPA 30 mg (1 Woche Stillpause)</p>${ovulationWarning}${ectopicWarning}`
+                };
+            }
+            
+            // Standard recommendations
+            if (answers.q2 === '0-72h') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg',
+                    content: `<p><strong>1. Wahl:</strong> LNG 1,5 mg</p><p><strong>Grund:</strong> Schwangerschaftsrisiko ≤ 72h</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            } else {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg',
+                    content: `<p><strong>Empfehlung:</strong> UPA 30 mg</p><p><strong>Grund:</strong> Schwangerschaftsrisiko 73-120h</p>${ovulationWarning}${ectopicWarning}<ul><li>Sofortige Einnahme empfohlen</li></ul>`
+                };
+            }
+        }
+        
+        function calculateHormonalResult() {
+            const timeFrame = answers['q3m'];
+            
+            if (timeFrame === 'over120h') {
+                return {
+                    class: 'result-referral',
+                    title: '⚠️ Kupferspirale empfohlen',
+                    content: '<p><strong>Grund:</strong> Schwangerschaftsrisiko > 120 Stunden</p><p><strong>Empfehlung:</strong> Kupferspirale als Notfallkontrazeption</p>'
+                };
+            }
+            
+            // Check if no EC needed based on hormonal contraceptive rules
+            let needsEC = true;
+            
+            // Combined pill logic
+            if (answers['q3b'] === 'combined-pill' && answers['q3c'] === 'standard') {
+                if (answers['q3d'] === 'week2' && answers['q3e'] === 'one' && answers['q3f'] === 'yes') {
+                    needsEC = false;
+                } else if (answers['q3d'] === 'week3' && answers['q3e'] === 'one' && answers['q3f'] === 'yes') {
+                    needsEC = false;
+                }
+            }
+            
+            // Progestin pill logic
+            if (answers['q3b'] === 'progestin-pill') {
+                if (answers['q3g'] === 'after7' && answers['q3h'] === 'one-correct') {
+                    needsEC = false;
+                }
+            }
+            
+            // Ring logic
+            if (answers['q3b'] === 'ring') {
+                if (answers['q3i'] === 'out-3h' && answers['q3j'] === 'week3' && answers['q3k'] === 'yes') {
+                    needsEC = false;
+                }
+            }
+            
+            // Patch logic
+            if (answers['q3b'] === 'patch') {
+                if (answers['q3l'] === 'removal-forgotten') {
+                    needsEC = false;
+                }
+            }
+            
+            if (!needsEC) {
+                return {
+                    class: 'result-no-nk',
+                    title: '✅ Keine Notfallkontrazeption nötig',
+                    content: `
+                        <p><strong>Grund:</strong> Nach differenziertem Vorgehen bei hormoneller Verhütung</p>
+                        <p><strong>📋 Empfehlung:</strong> Siehe IENK "Differenziertes Vorgehen" für spezifische Anweisungen</p>
+                        <p><strong>Allgemeine Maßnahmen:</strong></p>
+                        <ul>
+                            <li>Vergessene Methode sobald als möglich nachholen</li>
+                            <li>Anwendung zur gewohnten Zeit weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten (außer bei speziellen Fällen)</li>
+                        </ul>
+                    `
+                };
+            }
+            
+            // EC needed - get hormonal-specific instructions
+            const instructions = getHormonalInstructions();
+            
+            if (timeFrame === '0-72h') {
+                return {
+                    class: 'result-lng',
+                    title: '💊 LNG 1,5 mg + Spezielle Anweisungen',
+                    content: `
+                        <p><strong>1. Wahl:</strong> LNG 1,5 mg</p>
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko ≤ 72h</p>
+                        <p><strong>📋 Hormonelle Verhütung - Spezielle Anweisungen:</strong></p>
+                        ${instructions}
+                        <ul>
+                            <li>Sofortige Einnahme empfohlen</li>
+                            <li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li>
+                        </ul>
+                    `
+                };
+            } else {
+                return {
+                    class: 'result-upa',
+                    title: '💊 UPA 30 mg + Spezielle Anweisungen',
+                    content: `
+                        <p><strong>1. Wahl:</strong> UPA 30 mg</p>
+                        <p><strong>Grund:</strong> Schwangerschaftsrisiko 73-120h</p>
+                        <p><strong>📋 Hormonelle Verhütung - Spezielle Anweisungen:</strong></p>
+                        ${instructions}
+                        <ul>
+                            <li>Sofortige Einnahme empfohlen</li>
+                            <li>Bei Erbrechen binnen 3h: Einnahme wiederholen</li>
+                        </ul>
+                    `
+                };
+            }
+        }
+        
+        function getHormonalInstructions() {
+            const timeFrame = answers['q3m'];
+            const contraceptiveType = answers['q3b'];
+            
+            if (contraceptiveType === 'combined-pill') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
+                            <li>Einnahme aus begonnener Packung weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Vergessene Tabletten NICHT nachholen</li>
+                            <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
+                            <li>Hinweis: Entzugsblutung ${answers['q3d'] === 'week1' ? 'unwahrscheinlich' : 'möglich'}</li>
+                        </ul>
+                    `;
+                }
+            } else if (contraceptiveType === 'progestin-pill') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Letzte vergessene Tablette sobald als möglich einnehmen</li>
+                            <li>Einnahme aus begonnener Packung weiterführen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Vergessene Tabletten NICHT nachholen</li>
+                            <li>Pillen-Einnahme 5 Tage unterbrechen, neue Packung beginnen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende der neuen Packung</li>
+                        </ul>
+                    `;
+                }
+            } else if (contraceptiveType === 'ring') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Ring so bald wie möglich erneut einsetzen</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Aktuellen Ring verwerfen</li>
+                            <li>Ring-Anwendung 5 Tage unterbrechen</li>
+                            <li>Am 6. Tag nach UPA-Einnahme neuen Ring einsetzen</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                }
+            } else if (contraceptiveType === 'patch') {
+                if (timeFrame === '0-72h') {
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
+                            <li>Neues Pflaster aufkleben (neuer Zyklus, neuer Wechseltag)</li>
+                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                        </ul>
+                    `;
+                } else {
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
+                            <li>Pflaster-Anwendung 5 Tage pausieren</li>
+                            <li>Am 6. Tag nach UPA-Einnahme neues Pflaster aufkleben</li>
+                            <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
+                        </ul>
+                    `;
+                }
+            }
+            
+            return '<p>Siehe IENK-Protokoll für detaillierte Anweisungen</p>';
+        }
+        
+        function restart() {
+            currentQuestion = 1;
+            answers = {};
+            
+            // Reset selections and inputs
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('menstruationDate').value = '';
+            document.getElementById('cycleDuration').value = '';
+            
+            // Hide result and show navigation
+            document.getElementById('result').classList.remove('show');
+            document.querySelector('.navigation').style.display = 'flex';
+            
+            showQuestion(1);
+        }
+        
+        // Event handlers
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('option')) {
+                const question = e.target.closest('.question');
+                question.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                e.target.classList.add('selected');
+                document.getElementById('nextBtn').disabled = false;
+            }
+        });
+        
+        document.getElementById('menstruationDate').addEventListener('change', function() {
+            document.getElementById('nextBtn').disabled = !this.value;
+        });
+        
+        document.getElementById('cycleDuration').addEventListener('change', function() {
+            document.getElementById('nextBtn').disabled = !this.value || this.value < 21 || this.value > 45;
+        });
+        
+        // Initialize
+        updateProgress();
+        
+        // PDF Generation Function
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // PDF Settings
+            const margin = 20;
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const lineHeight = 7;
+            let yPosition = margin;
+            
+            // Helper function to add text with line breaks
+            function addText(text, fontSize = 10, isBold = false) {
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = margin;
+                }
+                
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+                
+                const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+                doc.text(lines, margin, yPosition);
+                yPosition += lines.length * lineHeight;
+            }
+            
+            // Header
+            addText('NOTFALLKONTRAZEPTION - BERATUNGSPROTOKOLL', 16, true);
+            addText('Nach IENK-Protokoll', 12);
+            yPosition += 5;
+            
+            // Date and time
+            const now = new Date();
+            addText(`Datum: ${now.toLocaleDateString('de-CH')}`, 10);
+            addText(`Zeit: ${now.toLocaleTimeString('de-CH')}`, 10);
+            yPosition += 10;
+            
+            // Questions and Answers
+            addText('ANAMNESE', 14, true);
+            yPosition += 5;
+            
+            const questionTexts = getQuestionTexts();
+            
+            Object.keys(answers).forEach(questionId => {
+                const questionText = questionTexts[questionId];
+                const answerValue = answers[questionId];
+                const answerText = getAnswerText(questionId, answerValue);
+                
+                if (questionText && answerText) {
+                    addText(`${questionText}`, 10, true);
+                    addText(`→ ${answerText}`, 10);
+                    yPosition += 3;
+                }
+            });
+            
+            yPosition += 10;
+            
+            // Result
+            addText('EMPFEHLUNG', 14, true);
+            yPosition += 5;
+            
+            const resultTitle = document.getElementById('resultTitle').textContent;
+            const resultContent = document.getElementById('resultContent');
+            
+            addText(resultTitle, 12, true);
+            yPosition += 3;
+            
+            // Extract and clean result content
+            const resultText = extractTextFromHTML(resultContent.innerHTML);
+            addText(resultText, 10);
+            
+            yPosition += 10;
+            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 8);
+            addText('Verantwortlich: Apotheker/in ________________________', 8);
+            
+            // Save PDF
+            const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
+            doc.save(fileName);
+        }
+        
+        function getQuestionTexts() {
+            return {
+                'q1': '1. Alter der Patientin',
+                'q2': '2. Stunden seit letztem ungeschütztem Geschlechtsverkehr',
+                'q3': '3. Ursache des Schwangerschaftsrisikos',
+                'q3b': '3b. Art der hormonellen Verhütung',
+                'q3c': '3c. Eigenschaften der kombinierten Pille',
+                'q3d': '3d. Woche des Zyklus (Problem)',
+                'q3e': '3e. Anzahl vergessene Tabletten',
+                'q3f': '3f. Korrekte Einnahme letzte 7 Tage',
+                'q3g': '3g. Phase der Gestagenpille',
+                'q3h': '3h. Vergessene Tabletten und Einnahme',
+                'q3i': '3i. Problem mit Verhütungsring',
+                'q3j': '3j. Anwendungswoche (Ring)',
+                'q3k': '3k. Korrekte Anwendung letzte 7 Tage (Ring)',
+                'q3l': '3l. Problem mit Verhütungspflaster',
+                'q3m': '3m. Zeitpunkt Schwangerschaftsrisiko (hormonell)',
+                'q4a': '4. Weiterer ungeschützter Geschlechtsverkehr',
+                'q4b': '4b. Datum letzte Menstruation',
+                'q4c': '4c. Verlauf letzte Menstruation',
+                'q4d': '4d. Regelmäßiger Zyklus',
+                'q4e': '4e. Zyklusdauer in Tagen',
+                'q5': '5. BMI der Patientin',
+                'q6': '6. Aktuelle Medikation',
+                'q7': '7. Kontraindikationen',
+                'q8': '8. Frühere Notfallkontrazeption',
+                'q8b': '8b. Eileiterschwangerschaft in Anamnese',
+                'q9': 'Urteilsfähigkeit (< 16 Jahre)'
+            };
+        }
+        
+        function getAnswerText(questionId, answerValue) {
+            const answerTexts = {
+                // Q1 - Alter
+                'over16': '≥ 16 Jahre',
+                'under16': '< 16 Jahre',
+                
+                // Q2 - Stunden uGV
+                '0-72h': '0-72 Stunden',
+                '73-120h': '73-120 Stunden',
+                'over120h': '> 120 Stunden',
+                
+                // Q3 - Ursache
+                'no-contraception': 'Keine Verhütung',
+                'condom-failure': 'Kondom gerissen/abgerutscht',
+                'hormonal-failure': 'Versagen der hormonellen Verhütung',
+                
+                // Q3b - Art hormonelle Verhütung
+                'combined-pill': 'Kombinierte orale Kontrazeptiva (Pille)',
+                'progestin-pill': 'Reine Gestagenpille (z.B. Cerazette)',
+                'ring': 'Verhütungsring (z.B. Nuvaring)',
+                'patch': 'Verhütungspflaster (z.B. Evra)',
+                
+                // Q3c - Eigenschaften Pille
+                'standard': 'Standard kombinierte Pille (20-35mcg Ethinylestradiol, 21/7)',
+                'newer': 'Neuere Kontrazeptiva (Gyselle petite, Zoely, Qlaira, etc.)',
+                
+                // Q3d - Woche
+                'week1': 'Woche 1 (Tabletten 1-7)',
+                'week2': 'Woche 2 (Tabletten 8-14)',
+                'week3': 'Woche 3 (Tabletten 15-21)',
+                
+                // Q3e - Anzahl Tabletten
+                'one': '1 Tablette vergessen',
+                'multiple': '2 oder mehr Tabletten vergessen',
+                
+                // Q3f - Korrekte Einnahme
+                'yes': 'Ja, korrekte Einnahme',
+                'no': 'Nein, fehlerhafte Einnahme',
+                
+                // Q3g - Gestagenpille Phase
+                'first7': 'Ersten 7 Tabletten nach Verhütungsbeginn',
+                'after7': 'Weitere Tabletten (ab 2. Anwendungswoche)',
+                
+                // Q3h - Gestagenpille Details
+                'one-correct': '1 Tablette vergessen + korrekte Einnahme letzte 7 Tage',
+                'multiple-or-incorrect': '≥2 Tabletten vergessen ODER ≥2 in letzten 7 Tagen',
+                
+                // Q3i - Ring Problem
+                'out-3h': 'Ring >3 Std außerhalb der Vagina',
+                'not-changed-4w': 'Ring >4 Wochen nicht gewechselt',
+                'pause-over1w': '>1 Woche Anwendungspause',
+                
+                // Q3j - Ring Woche
+                'week1-2': '1. oder 2. Anwendungswoche',
+                'week3': '3. Anwendungswoche',
+                
+                // Q3l - Pflaster Problem
+                'detached-24h': 'Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen',
+                'interval-7d': 'Pflasterfreies Intervall >7 Tage',
+                'removal-forgotten': 'Vergessen des Entfernens des 3. Pflasters',
+                
+                // Q4a - Weiterer uGV
+                'no': 'Nein',
+                'yes-72h': 'Ja, vor ≤ 72 Stunden',
+                'yes-73-120h': 'Ja, vor 73-120 Stunden',
+                'yes-over120h': 'Ja, vor > 120 Stunden',
+                
+                // Q4c - Verlauf Menstruation
+                'normal': 'Normal',
+                'lighter': 'Leichter/kürzer als gewöhnlich',
+                'absent': 'Ausgeblieben',
+                
+                // Q5 - BMI
+                'under25': '< 25 kg/m²',
+                '25-30': '25-30 kg/m²',
+                'over30': '> 30 kg/m²',
+                
+                // Q6 - Medikation
+                'none': 'Keine relevanten Medikamente',
+                'glukokortikoide': 'Systemische Glukokortikoide',
+                'gestagen': 'Gestagen',
+                'cyp3a4': 'CYP3A4-Induktor',
+                
+                // Q7 - Kontraindikationen
+                'liver': 'Schwere Leberfunktionsstörung',
+                'pregnancy': 'Schwangerschaft',
+                'allergy': 'Allergie gegen LNG/UPA',
+                'breastfeeding': 'Stillzeit',
+                
+                // Q8 - Frühere NK
+                'same-cycle': 'Ja, im gleichen Zyklus',
+                'previous-cycle': 'Ja, in früherem Zyklus'
+            };
+            
+            // Special handling for date and number inputs
+            if (questionId === 'q4b') {
+                return answerValue || 'Nicht angegeben';
+            }
+            if (questionId === 'q4e') {
+                return answerValue ? `${answerValue} Tage` : 'Nicht angegeben';
+            }
+            
+            return answerTexts[answerValue] || answerValue;
+        }
+        
+        function extractTextFromHTML(html) {
+            // Remove HTML tags and clean up text
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Extract text content
+            let text = tempDiv.textContent || tempDiv.innerText || '';
+            
+            // Clean up extra whitespace and line breaks
+            text = text.replace(/\s+/g, ' ').trim();
+            
+            // Replace bullet points and format lists
+            text = text.replace(/•/g, '- ');
+            
+            return text;
+        }
+    </script>
+</body>
+</html>
