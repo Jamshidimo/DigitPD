@@ -568,7 +568,7 @@
                 comments.push('BMI >30 kg/m²: 1. Wahl Kupferspirale, 2. Wahl UPA 30 mg oder LNG doppelte Dosis (3 mg)');
             }
             if (answers.q8 === 'same-cycle') {
-                comments.push('Wiederholte Einnahme im selben Zyklus möglich. Bei Wechsel zwischen LNG und UPA verminderte Wirksamkeit – gleicher Wirkstoff bevorzugen.');
+                comments.push('Wiederholte Einnahme im selben Zyklus möglich. Bei Wechsel zwischen LNG und UPA verminderte Wirksamkeit – gleicher Wirkstoff bevorzugen. Leicht erhöhtes Risiko für ektope Schwangerschaft, insbesondere bei entsprechender Vorgeschichte – über Alarmsymptome (Schmierblutungen, Krämpfe, Schmerzen im Unterleib) informieren.');
             }
 
             if (comments.length) {
@@ -926,7 +926,7 @@
             
             // Drug interactions
             if (answers.q6 === 'glukokortikoide' || answers.q6 === 'gestagen') {
-                if (within72h) {
+                if (answers.q2 === '0-72h') {
                     return {
                         class: 'result-lng',
                         title: '💊 LNG 1,5 mg',
