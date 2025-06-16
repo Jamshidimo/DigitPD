@@ -1282,50 +1282,51 @@
                 alert('PDF-Bibliothek wird geladen. Bitte versuchen Sie es in wenigen Sekunden erneut.');
                 return;
             }
-
+        
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
+        
             // PDF Settings
             const margin = 20;
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
-            const lineHeight = 7;
+            const lineHeight = 6;
             let yPosition = margin;
-
+        
             // Helper function to add text with line breaks and optional indent
-            function addText(text, fontSize = 10, isBold = false, indent = 0) {
+            function addText(text, fontSize = 10, isBold = false, indent = 0, extraSpacing = 0) {
                 if (yPosition > pageHeight - 30) {
                     doc.addPage();
                     yPosition = margin;
                 }
-
+        
                 doc.setFontSize(fontSize);
                 doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-
+        
                 const lines = doc.splitTextToSize(text, pageWidth - 2 * margin - indent);
                 lines.forEach(line => {
                     doc.text(line, margin + indent, yPosition);
-                    yPosition += lineHeight;
+                    yPosition += lineHeight + (fontSize > 10 ? 1 : 0);
                 });
+                yPosition += extraSpacing;
             }
             
             // Header
-            addText('NOTFALLKONTRAZEPTION', 16, true);
-            addText('Beratungsprotokoll nach IENK-Leitlinien', 12);
-            yPosition += 2;
+            addText('NOTFALLKONTRAZEPTION', 18, true, 0, 3);
+            addText('Beratungsprotokoll nach IENK-Leitlinien', 12, false, 0, 5);
+            
+            // Line under header
+            doc.setLineWidth(0.5);
             doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 5;
+            yPosition += 8;
             
             // Date and time
             const now = new Date();
-            addText(`Datum: ${now.toLocaleDateString('de-CH')}`, 10);
-            addText(`Zeit: ${now.toLocaleTimeString('de-CH')}`, 10);
-            yPosition += 10;
+            addText(`Datum: ${now.toLocaleDateString('de-CH')}`, 10, false, 0, 2);
+            addText(`Zeit: ${now.toLocaleTimeString('de-CH')}`, 10, false, 0, 8);
             
-            // Questions and Answers
-            addText('ANAMNESE', 14, true);
-            yPosition += 5;
+            // Questions and Answers section
+            addText('ANAMNESE', 14, true, 0, 5);
             
             const questionTexts = getQuestionTexts();
             
@@ -1333,15 +1334,47 @@
                 const questionText = questionTexts[questionId];
                 const answerValue = answers[questionId];
                 const answerText = getAnswerText(questionId, answerValue);
-
+        
                 if (questionText && answerText) {
-                    addText(`${questionText}`, 10, true);
-                    addText(`- ${answerText}`, 10, false, 5);
-                    yPosition += 3;
+                    addText(`${questionText}`, 10, true, 0, 1);
+                    addText(`• ${answerText}`, 10, false, 5, 3);
                 }
             });
             
+            // Result section
+            addText('EMPFEHLUNG', 14, true, 0, 3);
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 5;
+            
+            const resultTitle = document.getElementById('resultTitle').textContent.replace(/[📄💊⚠️✅]/g, '').trim();
+            const resultContent = document.getElementById('resultContent');
+            
+            addText(resultTitle, 12, true, 0, 3);
+            
+            // Extract and format result content properly
+            const formattedResult = formatResultForPDF(resultContent);
+            formattedResult.forEach(item => {
+                if (item.type === 'paragraph') {
+                    addText(item.text, 10, item.bold || false, 0, 2);
+                } else if (item.type === 'list') {
+                    addText(item.text, 10, false, 5, 1);
+                }
+            });
+            
+            yPosition += 5;
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 5;
+            
+            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 8, false, 0, 2);
+            addText('Verantwortlich: Apotheker/in ________________________', 8, false, 0, 0);
+            
+            // Save PDF
+            const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
+            doc.save(fileName);
+        }
+            
             yPosition += 10;
+    
             
             // Result
             addText('EMPFEHLUNG', 14, true);
@@ -1368,6 +1401,43 @@
             // Save PDF
             const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
             doc.save(fileName);
+        }
+
+        function formatResultForPDF(resultElement) {
+            const formattedItems = [];
+            
+            // Clone the element to avoid modifying the original
+            const clone = resultElement.cloneNode(true);
+            
+            // Remove emojis and clean up
+            clone.innerHTML = clone.innerHTML.replace(/[📄💊⚠️✅]/g, '');
+            
+            // Process each child element
+            Array.from(clone.children).forEach(child => {
+                if (child.tagName === 'P') {
+                    const text = child.textContent.trim();
+                    if (text) {
+                        const isBold = child.querySelector('strong') !== null;
+                        formattedItems.push({
+                            type: 'paragraph',
+                            text: text,
+                            bold: isBold
+                        });
+                    }
+                } else if (child.tagName === 'UL') {
+                    Array.from(child.querySelectorAll('li')).forEach(li => {
+                        const text = li.textContent.trim();
+                        if (text) {
+                            formattedItems.push({
+                                type: 'list',
+                                text: `• ${text}`
+                            });
+                        }
+                    });
+                }
+            });
+            
+            return formattedItems;
         }
         
         function getQuestionTexts() {
@@ -1507,22 +1577,34 @@
         }
         
         function extractTextFromHTML(html) {
-            // Remove HTML tags and clean up text
+            // Create a temporary div to parse HTML
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
             
-            // Extract text content
-            let text = tempDiv.textContent || tempDiv.innerText || '';
+            // Remove emojis
+            tempDiv.innerHTML = tempDiv.innerHTML.replace(/[📄💊⚠️✅]/g, '');
             
-            // Clean up extra whitespace and line breaks
-            text = text.replace(/\s+/g, ' ').trim();
+            let result = '';
             
-            // Replace bullet points and format lists
-            text = text.replace(/•/g, '- ');
-            text = text.replace(/!'/g, '- ');
-            text = text.replace('Ø=ÜŠ', '- ');
+            // Process each element
+            Array.from(tempDiv.children).forEach(child => {
+                if (child.tagName === 'P') {
+                    const text = child.textContent.trim();
+                    if (text) {
+                        result += text + '\n\n';
+                    }
+                } else if (child.tagName === 'UL') {
+                    Array.from(child.querySelectorAll('li')).forEach(li => {
+                        const text = li.textContent.trim();
+                        if (text) {
+                            result += `• ${text}\n`;
+                        }
+                    });
+                    result += '\n';
+                }
+            });
             
-            return text;
+            return result.trim();
         }
 </script>
 </body>
