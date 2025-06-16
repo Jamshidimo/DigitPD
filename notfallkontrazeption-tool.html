@@ -1372,36 +1372,6 @@
             const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
             doc.save(fileName);
         }
-            
-            yPosition += 10;
-    
-            
-            // Result
-            addText('EMPFEHLUNG', 14, true);
-            yPosition += 2;
-            doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 5;
-            
-            const resultTitle = document.getElementById('resultTitle').textContent;
-            const resultContent = document.getElementById('resultContent');
-            
-            addText(resultTitle, 12, true);
-            yPosition += 3;
-            
-            // Extract and clean result content
-            const resultText = extractTextFromHTML(resultContent.innerHTML);
-            addText(resultText, 10, false, 5);
-            
-            yPosition += 10;
-            doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 4;
-            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 8);
-            addText('Verantwortlich: Apotheker/in ________________________', 8);
-            
-            // Save PDF
-            const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
-            doc.save(fileName);
-        }
 
         function formatResultForPDF(resultElement) {
             const formattedItems = [];
