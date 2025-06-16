@@ -928,6 +928,8 @@
             }
             
             // Drug interactions
+            // Nach 72h darf kein LNG abgegeben werden, wenn eine Interaktion
+            // mit UPA besteht – dann ist die Kupferspirale empfohlen.
             if (answers.q6 === 'glukokortikoide' || answers.q6 === 'gestagen') {
                 if (answers.q2 === '0-72h') {
                     return {
