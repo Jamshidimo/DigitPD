@@ -1277,7 +1277,6 @@
         
         // PDF Generation Function
         function generatePDF() {
-            // Check if jsPDF is available
             if (typeof window.jspdf === 'undefined') {
                 alert('PDF-Bibliothek wird geladen. Bitte versuchen Sie es in wenigen Sekunden erneut.');
                 return;
@@ -1291,11 +1290,12 @@
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
             const lineHeight = 6;
+            const maxLineWidth = pageWidth - 2 * margin;
             let yPosition = margin;
         
-            // Helper function to add text with line breaks and optional indent
+            // Helper function to add text with proper encoding and line breaks
             function addText(text, fontSize = 10, isBold = false, indent = 0, extraSpacing = 0) {
-                if (yPosition > pageHeight - 30) {
+                if (yPosition > pageHeight - 40) {
                     doc.addPage();
                     yPosition = margin;
                 }
@@ -1303,105 +1303,168 @@
                 doc.setFontSize(fontSize);
                 doc.setFont('helvetica', isBold ? 'bold' : 'normal');
         
-                const lines = doc.splitTextToSize(text, pageWidth - 2 * margin - indent);
+                // Fix encoding issues
+                text = fixTextEncoding(text);
+        
+                // Split text properly to avoid word breaking
+                const lines = doc.splitTextToSize(text, maxLineWidth - indent);
                 lines.forEach(line => {
                     doc.text(line, margin + indent, yPosition);
-                    yPosition += lineHeight + (fontSize > 10 ? 1 : 0);
+                    yPosition += lineHeight + (fontSize > 10 ? 2 : 0);
                 });
                 yPosition += extraSpacing;
             }
+        
+            // Function to fix common encoding issues
+            function fixTextEncoding(text) {
+                return text
+                    .replace(/≥/g, '>= ')
+                    .replace(/≤/g, '<= ')
+                    .replace(/→/g, ' -> ')
+                    .replace(/"/g, '"')
+                    .replace(/"/g, '"')
+                    .replace(/'/g, "'")
+                    .replace(/'/g, "'")
+                    .replace(/…/g, '...')
+                    .replace(/–/g, '-')
+                    .replace(/—/g, ' - ');
+            }
             
-            // Header
-            addText('NOTFALLKONTRAZEPTION', 18, true, 0, 3);
-            addText('Beratungsprotokoll nach IENK-Leitlinien', 12, false, 0, 5);
+            // Header with better spacing
+            addText('NOTFALLKONTRAZEPTION', 20, true, 0, 5);
+            addText('Beratungsprotokoll nach IENK-Leitlinien', 14, false, 0, 8);
             
-            // Line under header
-            doc.setLineWidth(0.5);
+            // Header line
+            doc.setLineWidth(1);
             doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 8;
+            yPosition += 10;
             
-            // Date and time
+            // Date and time with better formatting
             const now = new Date();
-            addText(`Datum: ${now.toLocaleDateString('de-CH')}`, 10, false, 0, 2);
-            addText(`Zeit: ${now.toLocaleTimeString('de-CH')}`, 10, false, 0, 8);
+            const dateStr = now.toLocaleDateString('de-CH', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+            });
+            const timeStr = now.toLocaleTimeString('de-CH', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
             
-            // Questions and Answers section
-            addText('ANAMNESE', 14, true, 0, 5);
+            addText(`Datum: ${dateStr}`, 11, false, 0, 3);
+            addText(`Zeit: ${timeStr}`, 11, false, 0, 10);
+            
+            // Main content section
+            addText('ANAMNESE', 16, true, 0, 8);
             
             const questionTexts = getQuestionTexts();
             
+            // Process answers with better formatting
             Object.keys(answers).forEach(questionId => {
                 const questionText = questionTexts[questionId];
                 const answerValue = answers[questionId];
                 const answerText = getAnswerText(questionId, answerValue);
         
                 if (questionText && answerText) {
-                    addText(`${questionText}`, 10, true, 0, 1);
-                    addText(`• ${answerText}`, 10, false, 5, 3);
+                    addText(`${questionText}`, 11, true, 0, 2);
+                    addText(`• ${answerText}`, 10, false, 8, 5);
                 }
             });
             
-            // Result section
-            addText('EMPFEHLUNG', 14, true, 0, 3);
-            doc.line(margin, yPosition, pageWidth - margin, yPosition);
             yPosition += 5;
+            
+            // Result section with improved formatting
+            addText('EMPFEHLUNG', 16, true, 0, 5);
+            doc.setLineWidth(1);
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 8;
             
             const resultTitle = document.getElementById('resultTitle').textContent.replace(/[📄💊⚠️✅]/g, '').trim();
             const resultContent = document.getElementById('resultContent');
             
-            addText(resultTitle, 12, true, 0, 3);
+            addText(resultTitle, 14, true, 0, 5);
             
-            // Extract and format result content properly
+            // Process result content with better text handling
             const formattedResult = formatResultForPDF(resultContent);
             formattedResult.forEach(item => {
                 if (item.type === 'paragraph') {
-                    addText(item.text, 10, item.bold || false, 0, 2);
+                    const isBold = item.text.includes('Wahl:') || item.text.includes('Grund:') || item.text.includes('Empfehlung:');
+                    addText(item.text, 10, isBold, 0, 3);
                 } else if (item.type === 'list') {
-                    addText(item.text, 10, false, 5, 1);
+                    addText(`• ${item.text}`, 10, false, 8, 2);
                 }
             });
             
-            yPosition += 5;
+            // Footer section
+            yPosition += 8;
+            doc.setLineWidth(0.5);
             doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 5;
+            yPosition += 6;
             
-            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 8, false, 0, 2);
-            addText('Verantwortlich: Apotheker/in ________________________', 8, false, 0, 0);
+            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 9, false, 0, 3);
+            addText('Verantwortlich: Apotheker/in ________________________', 9, false, 0, 0);
             
-            // Save PDF
-            const fileName = `NK-Beratung_${now.toLocaleDateString('de-CH').replace(/\./g, '-')}_${now.toLocaleTimeString('de-CH').replace(/:/g, '-')}.pdf`;
+            // Save with better filename
+            const fileName = `Notfallkontrazeption_${dateStr.replace(/\./g, '-')}_${timeStr.replace(/:/g, '-')}.pdf`;
             doc.save(fileName);
         }
-
+        
+        // Improved result formatting function
         function formatResultForPDF(resultElement) {
             const formattedItems = [];
             
-            // Clone the element to avoid modifying the original
+            // Clone and clean
             const clone = resultElement.cloneNode(true);
-            
-            // Remove emojis and clean up
             clone.innerHTML = clone.innerHTML.replace(/[📄💊⚠️✅]/g, '');
             
-            // Process each child element
+            // Process each child element with better text handling
             Array.from(clone.children).forEach(child => {
                 if (child.tagName === 'P') {
-                    const text = child.textContent.trim();
+                    let text = child.textContent.trim();
                     if (text) {
-                        const isBold = child.querySelector('strong') !== null;
-                        formattedItems.push({
-                            type: 'paragraph',
-                            text: text,
-                            bold: isBold
-                        });
+                        // Handle long text by splitting logically
+                        if (text.length > 120) {
+                            const sentences = text.split('. ');
+                            sentences.forEach((sentence, index) => {
+                                if (sentence.trim()) {
+                                    const finalText = index < sentences.length - 1 ? sentence + '.' : sentence;
+                                    formattedItems.push({
+                                        type: 'paragraph',
+                                        text: finalText,
+                                        bold: child.querySelector('strong') !== null
+                                    });
+                                }
+                            });
+                        } else {
+                            formattedItems.push({
+                                type: 'paragraph',
+                                text: text,
+                                bold: child.querySelector('strong') !== null
+                            });
+                        }
                     }
                 } else if (child.tagName === 'UL') {
                     Array.from(child.querySelectorAll('li')).forEach(li => {
-                        const text = li.textContent.trim();
+                        let text = li.textContent.trim();
                         if (text) {
-                            formattedItems.push({
-                                type: 'list',
-                                text: `• ${text}`
-                            });
+                            // Split very long list items
+                            if (text.length > 100) {
+                                const parts = text.split(' – ');
+                                parts.forEach((part, index) => {
+                                    if (part.trim()) {
+                                        const prefix = index === 0 ? '' : '  ';
+                                        formattedItems.push({
+                                            type: 'list',
+                                            text: prefix + part.trim()
+                                        });
+                                    }
+                                });
+                            } else {
+                                formattedItems.push({
+                                    type: 'list',
+                                    text: text
+                                });
+                            }
                         }
                     });
                 }
@@ -1441,10 +1504,11 @@
             };
         }
         
+        // Improved answer text function with proper encoding
         function getAnswerText(questionId, answerValue) {
             const answerTexts = {
-                // Q1 - Alter
-                'over16': '≥ 16 Jahre',
+                // Q1 - Alter (mit korrigiertem Encoding)
+                'over16': '>= 16 Jahre',
                 'under16': '< 16 Jahre',
                 
                 // Q2 - Stunden uGV
@@ -1486,25 +1550,25 @@
                 
                 // Q3h - Gestagenpille Details
                 'one-correct': '1 Tablette vergessen + korrekte Einnahme letzte 7 Tage',
-                'multiple-or-incorrect': '≥2 Tabletten vergessen ODER ≥2 in letzten 7 Tagen',
+                'multiple-or-incorrect': '>= 2 Tabletten vergessen ODER >= 2 in letzten 7 Tagen',
                 
                 // Q3i - Ring Problem
-                'out-3h': 'Ring >3 Std ausserhalb der Vagina',
-                'not-changed-4w': 'Ring >4 Wochen nicht gewechselt',
-                'pause-over1w': '>1 Woche Anwendungspause',
+                'out-3h': 'Ring > 3 Std ausserhalb der Vagina',
+                'not-changed-4w': 'Ring > 4 Wochen nicht gewechselt',
+                'pause-over1w': '> 1 Woche Anwendungspause',
                 
                 // Q3j - Ring Woche
                 'week1-2': '1. oder 2. Anwendungswoche',
                 'week3': '3. Anwendungswoche',
                 
                 // Q3l - Pflaster Problem
-                'detached-24h': 'Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen',
-                'interval-7d': 'Pflasterfreies Intervall >7 Tage',
+                'detached-24h': 'Pflaster >= 24 Std abgelöst/Wechsel >= 48 Std vergessen',
+                'interval-7d': 'Pflasterfreies Intervall > 7 Tage',
                 'removal-forgotten': 'Vergessen des Entfernens des 3. Pflasters',
                 
                 // Q4a - Weiterer uGV
                 'no': 'Nein',
-                'yes-72h': 'Ja, vor ≤ 72 Stunden',
+                'yes-72h': 'Ja, vor <= 72 Stunden',
                 'yes-73-120h': 'Ja, vor 73-120 Stunden',
                 'yes-over120h': 'Ja, vor > 120 Stunden',
                 
