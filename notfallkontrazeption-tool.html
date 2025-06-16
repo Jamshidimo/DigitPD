@@ -570,7 +570,11 @@
             if (answers.q8 === 'same-cycle') {
                 comments.push('Wiederholte Einnahme im selben Zyklus möglich. Bei Wechsel zwischen LNG und UPA verminderte Wirksamkeit – gleicher Wirkstoff bevorzugen. Leicht erhöhtes Risiko für ektope Schwangerschaft, insbesondere bei entsprechender Vorgeschichte – über Alarmsymptome (Schmierblutungen, Krämpfe, Schmerzen im Unterleib) informieren.');
             }
-
+            // NEUE ERGÄNZUNG:
+            if (answers['q4c'] === 'lighter' || answers['q4c'] === 'absent') {
+                comments.push('Letzte Menstruation leichter, kürzer oder ausgeblieben: mögliche Anzeichen einer Schwangerschaft → Schwangerschaftstest empfohlen wenn Anzeichen vorhanden und weiterer uGV vor >21 Tagen');
+            }
+        
             if (comments.length) {
                 return '<p><strong>Kommentare:</strong></p><ul><li>' + comments.join('</li><li>') + '</li></ul>';
             }
