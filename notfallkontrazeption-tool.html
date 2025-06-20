@@ -1014,6 +1014,19 @@
                         `
                     };
                 }
+                if (answers['q3b'] === 'ring' && answers['q3i'] === 'out-3h' && answers['q3j'] === 'week3' && answers['q3k'] === 'yes') {
+                    return {
+                        class: 'result-no-nk',
+                        title: '✅ Keine Notfallkontrazeption nötig',
+                        content: `
+                            <p><strong>Grund:</strong> Ring &gt;3 Std. ausserhalb der Vagina in der 3. Woche, korrekte Anwendung letzte 7 Tage</p>
+                            <ul>
+                                <li><strong>Methode A:</strong> Aktuellen Ring verwerfen. So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus). Hinweis: Entzugsblutung unwahrscheinlich.</li>
+                                <li><strong>Methode B:</strong> Aktuellen Ring verwerfen. Nach einem ringfreien Intervall von insgesamt bis zu 7 Tagen einen neuen Ring einsetzen (Beginn neuer Zyklus). Hinweis: Entzugsblutung wahrscheinlich.</li>
+                            </ul>
+                        `
+                    };
+                }
                 if (answers['q3b'] === 'patch' && answers['q3l'] === 'detached-24h') {
                     return {
                         class: 'result-no-nk',
@@ -1137,7 +1150,37 @@
                 }
             } else if (contraceptiveType === 'ring') {
                 const ringProblem = answers['q3i'];
+                const ringWeek = answers['q3j'];
+                const ringCorrect = answers['q3k'];
                 if (ringProblem === 'out-3h') {
+                    if (ringWeek === 'week3') {
+                        if (timeFrame === '0-72h') {
+                            if (ringCorrect === 'yes') {
+                                return `
+                                    <ul>
+                                        <li>Bei korrekter Anwendung in den letzten 7 Tagen nach Methode A oder B vorgehen, keine zusätzliche Verhütung mit Kondom notwendig.</li>
+                                        <li><strong>Methode A:</strong> Aktuellen Ring verwerfen. So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus). Hinweis: Entzugsblutung unwahrscheinlich.</li>
+                                        <li><strong>Methode B:</strong> Aktuellen Ring verwerfen. Nach einem ringfreien Intervall von insgesamt bis zu 7 Tagen einen neuen Ring einsetzen (Beginn neuer Zyklus). Hinweis: Entzugsblutung wahrscheinlich.</li>
+                                    </ul>
+                                `;
+                            }
+                            return `
+                                <ul>
+                                    <li>Bei fehlerhafter Anwendung in den letzten 7 Tagen nach Methode A vorgehen und zusätzlich mit Kondom verhüten bis der Ring korrekt über 7 Tage angewendet wurde.</li>
+                                    <li><strong>Methode A:</strong> Aktuellen Ring verwerfen. So bald wie möglich einen neuen Ring einsetzen (Beginn neuer Zyklus). Hinweis: Entzugsblutung unwahrscheinlich.</li>
+                                </ul>
+                            `;
+                        }
+                        return `
+                            <ul>
+                                <li>Aktuellen Ring verwerfen</li>
+                                <li>Ring-Anwendung während den nächsten 5 Tagen unterbrechen</li>
+                                <li>Am 6. Tag nach UPA-Einnahme einen neuen Ring einsetzen (Beginn neuer Zyklus)</li>
+                                <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
+                                <li>Hinweis: Entzugsblutung wahrscheinlich</li>
+                            </ul>
+                        `;
+                    }
                     if (timeFrame === '0-72h') {
                         return `
                             <ul>
@@ -1228,6 +1271,8 @@
                         </ul>
                     `;
                 }
+        }
+        }
         
         function restart() {
             currentQuestion = 1;
@@ -1252,11 +1297,12 @@
         
         // Event handlers with auto-advance
         document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('option')) {
-                const question = e.target.closest('.question');
+            const option = e.target.closest('.option');
+            if (option) {
+                const question = option.closest('.question');
                 question.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
-                e.target.classList.add('selected');
-                
+                option.classList.add('selected');
+
                 // Auto-advance after short delay
                 setTimeout(() => {
                     nextQuestion();
