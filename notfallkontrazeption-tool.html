@@ -384,9 +384,10 @@
             <div class="question" id="q3l">
                 <h3>3l. Problem mit dem Verhütungspflaster</h3>
                 <div class="options">
-                    <div class="option" data-value="detached-24h">Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen</div>
+                    <div class="option" data-value="detached-24h">Inkorrektes Aufliegen / Ablösen des Pflasters ≥24 Std.</div>
+                    <div class="option" data-value="mid-cycle-48h">Pflaster-Wechsel in der Mitte des Zyklus (8. / 15. Tag) ≥48 Std. vergessen</div>
                     <div class="option" data-value="interval-7d">Pflasterfreies Intervall >7 Tage</div>
-                    <div class="option" data-value="removal-forgotten">Vergessen des Entfernens des 3. Pflasters (Tag 22)</div>
+                    <div class="option" data-value="removal-forgotten">Vergessen des Entfernens des 3. Pflasters (22. Tag)</div>
                 </div>
             </div>
             
@@ -1004,10 +1005,10 @@
                         class: 'result-no-nk',
                         title: '✅ Keine Notfallkontrazeption nötig',
                         content: `
-                            <p><strong>Grund:</strong> Vergessen des Entfernens des 3. Pflasters</p>
+                            <p><strong>Grund:</strong> Vergessen des Entfernens des 3. Pflasters (22. Tag)</p>
                             <ul>
-                                <li>Pflaster so bald wie möglich entfernen</li>
-                                <li>Nächster Zyklus beginnt am gewohnten Wechseltag (Tag 29)</li>
+                                <li>So bald wie möglich Pflaster entfernen</li>
+                                <li>Der nächste Zyklus beginnt am gewohnten Wechseltag (Tag 29)</li>
                                 <li>Keine zusätzliche Verhütung mit Kondom notwendig</li>
                             </ul>
                         `
@@ -1190,11 +1191,31 @@
                 }
             } else if (contraceptiveType === 'patch') {
                 const patchProblem = answers['q3l'];
-                if (patchProblem === 'interval-7d') {
+                if (patchProblem === 'detached-24h' || patchProblem === 'mid-cycle-48h') {
                     if (timeFrame === '0-72h') {
                         return `
                             <ul>
-                                <li>So bald wie möglich ein neues Pflaster aufkleben (Beginn neuer Zyklus, neuer Wechseltag)</li>
+                                <li>Pflaster verwerfen und aktueller Zyklus beenden</li>
+                                <li>So bald wie möglich ein neues Pflaster aufkleben (Beginn neuer vierwöchiger Zyklus, neuer Tag 1 und neuer Wechseltag)</li>
+                                <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
+                                <li>Hinweis: Entzugsblutung unwahrscheinlich</li>
+                            </ul>
+                        `;
+                    }
+                    return `
+                        <ul>
+                            <li>Pflaster verwerfen und aktueller Zyklus beenden</li>
+                            <li>Pflaster-Anwendung während den nächsten 5 Tagen pausieren</li>
+                            <li>Am 6. Tag nach UPA-Einnahme ein neues Pflaster aufkleben (Beginn neuer vierwöchiger Zyklus, neuer Tag 1 und neuer Wechseltag)</li>
+                            <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
+                            <li>Hinweis: Entzugsblutung wahrscheinlich</li>
+                        </ul>
+                    `;
+                } else if (patchProblem === 'interval-7d') {
+                    if (timeFrame === '0-72h') {
+                        return `
+                            <ul>
+                                <li>So bald wie möglich ein neues Pflaster aufkleben (Beginn neuer vierwöchiger Zyklus, neuer Wechseltag)</li>
                                 <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
                             </ul>
                         `;
@@ -1202,32 +1223,11 @@
                     return `
                         <ul>
                             <li>Anwendungspause um 5 zusätzliche Tage verlängern</li>
-                            <li>Am 6. Tag nach UPA-Einnahme ein neues Pflaster aufkleben (Beginn neuer Zyklus, neuer Wechseltag)</li>
+                            <li>Am 6. Tag nach UPA-Einnahme ein neues Pflaster aufkleben (Beginn neuer vierwöchiger Zyklus, neuer Wechseltag)</li>
                             <li>Zusätzlich mit Kondom verhüten bis zum Ende des neuen Zyklus</li>
                         </ul>
                     `;
                 }
-                if (timeFrame === '0-72h') {
-                    return `
-                        <ul>
-                            <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
-                            <li>Neues Pflaster aufkleben (neuer Zyklus, neuer Wechseltag)</li>
-                            <li>Zusätzlich 7 Tage mit Kondom verhüten</li>
-                        </ul>
-                    `;
-                }
-                return `
-                    <ul>
-                        <li>Pflaster verwerfen, aktueller Zyklus beenden</li>
-                        <li>Pflaster-Anwendung 5 Tage pausieren</li>
-                        <li>Am 6. Tag nach UPA-Einnahme neues Pflaster aufkleben</li>
-                        <li>Zusätzlich mit Kondom verhüten bis Ende des neuen Zyklus</li>
-                    </ul>
-                `;
-            }
-            
-            return '<p>Siehe IENK-Protokoll für detaillierte Anweisungen</p>';
-        }
         
         function restart() {
             currentQuestion = 1;
@@ -1562,9 +1562,10 @@
                 'week3': '3. Anwendungswoche',
                 
                 // Q3l - Pflaster Problem
-                'detached-24h': 'Pflaster >= 24 Std abgelöst/Wechsel >= 48 Std vergessen',
+                'detached-24h': 'Inkorrektes Aufliegen / Ablösen des Pflasters >= 24 Std.',
+                'mid-cycle-48h': 'Pflaster-Wechsel in der Mitte des Zyklus (8. / 15. Tag) >= 48 Std. vergessen',
                 'interval-7d': 'Pflasterfreies Intervall > 7 Tage',
-                'removal-forgotten': 'Vergessen des Entfernens des 3. Pflasters',
+                'removal-forgotten': 'Vergessen des Entfernens des 3. Pflasters (22. Tag)',
                 
                 // Q4a - Weiterer uGV
                 'no': 'Nein',
