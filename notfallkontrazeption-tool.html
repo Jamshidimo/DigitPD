@@ -421,6 +421,11 @@
                 <h3>4b. Beginn der letzten Menstruation</h3>
                 <label for="menstruationDate" style="display: block; margin-bottom: 8px; font-weight: 600;">Datum der letzten Menstruation:</label>
                 <input type="date" id="menstruationDate" class="input-field" style="width: 200px;">
+                <div id="menstruationError" style="color: red; margin-top: 8px;"></div>
+                <div style="margin-top: 10px;">
+                    <label style="font-weight: 600;"><input type="checkbox" id="noMenstruation" style="margin-right:5px;">Keine Menstruation vorhanden</label>
+                    <input type="text" id="noMenstruationComment" class="input-field" placeholder="Kommentar" style="display:none; margin-top:8px;">
+                </div>
             </div>
             
             <!-- Frage 4c: Verlauf Menstruation -->
@@ -457,6 +462,13 @@
                     <div class="option" data-value="under25">< 25 kg/m²</div>
                     <div class="option" data-value="25-30">25-30 kg/m²</div>
                     <div class="option" data-value="over30">> 30 kg/m²</div>
+                    <div class="option" data-value="unknown" id="bmiUnknownOption">Nicht bekannt</div>
+                </div>
+                <div id="bmiInputFields" style="display:none; margin-top:10px;">
+                    <input type="number" id="weight" class="input-field" placeholder="Gewicht (kg)" style="width:120px;"> 
+                    <input type="number" id="height" class="input-field" placeholder="Grösse (cm)" style="width:120px;">
+                    <button class="btn btn-secondary" type="button" id="bmiCalcBtn" style="margin-top:10px;">BMI berechnen</button>
+                    <div id="bmiCalcResult" style="margin-top:8px;"></div>
                 </div>
             </div>
             
@@ -596,12 +608,17 @@
                 // Handle different input types
                 if (questionNum === '4b') {
                     const dateInput = document.getElementById('menstruationDate');
-                    document.getElementById('nextBtn').disabled = !dateInput.value;
+                    const noMens = document.getElementById('noMenstruation');
+                    document.getElementById('nextBtn').disabled = !dateInput.value && !noMens.checked;
                     document.getElementById('nextBtn').style.display = 'block'; // Show button for date input
+                    document.getElementById('bmiInputFields').style.display = 'none';
                 } else if (questionNum === '4e') {
                     const cycleDurationInput = document.getElementById('cycleDuration');
                     document.getElementById('nextBtn').disabled = !cycleDurationInput.value;
                     document.getElementById('nextBtn').style.display = 'block'; // Show button for number input
+                } else if (questionNum === 5) {
+                    document.getElementById('bmiInputFields').style.display = 'none';
+                    document.getElementById('nextBtn').style.display = 'none';
                 } else {
                     // For option questions, hide the next button (auto-advance)
                     document.getElementById('nextBtn').style.display = 'none';
@@ -622,9 +639,16 @@
             
             // Handle special input fields
             if (currentQuestion === '4b') {
-                const dateInput = document.getElementById('menstruationDate');
-                if (!dateInput.value) return;
-                answers['q4b'] = dateInput.value;
+                const noMens = document.getElementById('noMenstruation');
+                if (noMens.checked) {
+                    answers['q4b'] = 'none';
+                    answers['q4bComment'] = document.getElementById('noMenstruationComment').value;
+                } else {
+                    const dateInput = document.getElementById('menstruationDate');
+                    if (!dateInput.value) return;
+                    answers['q4b'] = dateInput.value;
+                    answers['q4bComment'] = '';
+                }
                 currentQuestion = '4c';
                 showQuestion(currentQuestion);
                 return;
@@ -1285,7 +1309,15 @@
             // Reset selections and inputs
             document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
             document.getElementById('menstruationDate').value = '';
+            document.getElementById('menstruationError').textContent = '';
+            document.getElementById('noMenstruation').checked = false;
+            document.getElementById('noMenstruationComment').value = '';
+            document.getElementById('noMenstruationComment').style.display = 'none';
             document.getElementById('cycleDuration').value = '';
+            document.getElementById('bmiInputFields').style.display = 'none';
+            document.getElementById('weight').value = '';
+            document.getElementById('height').value = '';
+            document.getElementById('bmiCalcResult').textContent = '';
             
             // Hide result and show navigation
             document.getElementById('result').classList.remove('show');
@@ -1305,6 +1337,14 @@
                 const question = option.closest('.question');
                 question.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
                 option.classList.add('selected');
+                if(question.id === 'q5' && option.dataset.value === 'unknown') {
+                    document.getElementById('bmiInputFields').style.display = 'block';
+                    document.getElementById('nextBtn').style.display = 'block';
+                    document.getElementById('nextBtn').disabled = true;
+                    return;
+                } else {
+                    document.getElementById('bmiInputFields').style.display = 'none';
+                }
 
                 // Auto-advance after short delay
                 setTimeout(() => {
@@ -1314,11 +1354,64 @@
         });
         
         document.getElementById('menstruationDate').addEventListener('change', function() {
-            document.getElementById('nextBtn').disabled = !this.value;
+            const errorDiv = document.getElementById('menstruationError');
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            const diffDays = (today - selectedDate) / (1000 * 60 * 60 * 24);
+            if (selectedDate > today || diffDays > 365) {
+                errorDiv.textContent = 'Datum darf nicht in der Zukunft liegen und maximal 12 Monate zurückliegen.';
+                document.getElementById('nextBtn').disabled = true;
+            } else {
+                errorDiv.textContent = '';
+                document.getElementById('nextBtn').disabled = false;
+            }
+        });
+
+        document.getElementById('noMenstruation').addEventListener('change', function() {
+            const comment = document.getElementById('noMenstruationComment');
+            const dateInput = document.getElementById('menstruationDate');
+            if (this.checked) {
+                comment.style.display = 'block';
+                dateInput.disabled = true;
+                document.getElementById('menstruationError').textContent = '';
+                document.getElementById('nextBtn').disabled = false;
+            } else {
+                comment.style.display = 'none';
+                dateInput.disabled = false;
+                document.getElementById('nextBtn').disabled = !dateInput.value;
+            }
         });
         
         document.getElementById('cycleDuration').addEventListener('change', function() {
             document.getElementById('nextBtn').disabled = !this.value || this.value < 21 || this.value > 45;
+        });
+
+        document.getElementById('bmiCalcBtn').addEventListener('click', function() {
+            const weight = parseFloat(document.getElementById('weight').value);
+            const heightCm = parseFloat(document.getElementById('height').value);
+            if (!weight || !heightCm) {
+                alert('Bitte Gewicht und Grösse eingeben.');
+                return;
+            }
+            const height = heightCm / 100;
+            const bmi = weight / (height * height);
+            let category = '';
+            if (bmi < 25) {
+                category = 'under25';
+            } else if (bmi <= 30) {
+                category = '25-30';
+            } else {
+                category = 'over30';
+            }
+            answers['q5'] = category;
+            answers['bmiValue'] = bmi.toFixed(1);
+
+            const selectedOpt = document.querySelector('#q5 .option.selected');
+            if (selectedOpt) selectedOpt.classList.remove('selected');
+            document.querySelector(`#q5 .option[data-value="${category}"]`).classList.add('selected');
+            document.getElementById('bmiCalcResult').textContent = `BMI: ${bmi.toFixed(1)} (${getAnswerText('q5', category)})`;
+
+            setTimeout(() => { nextQuestion(); }, 300);
         });
         
         // Initialize
@@ -1541,6 +1634,7 @@
                 'q3m': '3m. Zeitpunkt Schwangerschaftsrisiko (hormonell)',
                 'q4a': '4. Weiterer ungeschützter Geschlechtsverkehr',
                 'q4b': '4b. Datum letzte Menstruation',
+                'q4bComment': 'Kommentar Menstruation',
                 'q4c': '4c. Verlauf letzte Menstruation',
                 'q4d': '4d. Regelmässiger Zyklus',
                 'q4e': '4e. Zyklusdauer in Tagen',
@@ -1652,12 +1746,26 @@
             
             // Special handling for date and number inputs
             if (questionId === 'q4b') {
+                if (answerValue === 'none') {
+                    return 'Keine Menstruation vorhanden';
+                }
                 return answerValue || 'Nicht angegeben';
+            }
+            if (questionId === 'q4bComment') {
+                return answerValue || 'Keine Angabe';
             }
             if (questionId === 'q4e') {
                 return answerValue ? `${answerValue} Tage` : 'Nicht angegeben';
             }
-            
+
+            if (questionId === 'q5') {
+                const text = answerTexts[answerValue] || answerValue;
+                if (answers.bmiValue) {
+                    return `${text} (BMI ${answers.bmiValue})`;
+                }
+                return text;
+            }
+
             return answerTexts[answerValue] || answerValue;
         }
         
