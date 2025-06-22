@@ -1431,7 +1431,8 @@
             const margin = 20;
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
-            const lineHeight = 1.5; // reduced line spacing
+            // Adjusted line spacing to avoid overlapping text
+            const lineHeight = 3;
             const maxLineWidth = pageWidth - 2 * margin;
             let yPosition = margin;
         
@@ -1544,7 +1545,8 @@
             yPosition += 6;
             
             addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 9, false, 0, 3);
-            addText('Formular wurde durchgeführt durch: ________________________  Funktion: ________________________', 9, false, 0, 3);
+            // Increase spacing before the "Verantwortlich" line for clarity
+            addText('Formular wurde durchgeführt durch: ________________________  Funktion: ________________________', 9, false, 0, 6);
             addText('Verantwortlich: Apotheker/in ________________________', 9, false, 0, 0);
             
             // Save with better filename
