@@ -338,6 +338,7 @@
             <div class="question" id="q5a">
                 <h3>5. Problem mit dem Verhütungspflaster</h3>
                 <div class="options">
+                    <div class="option" data-value="detached-under24h">Pflaster &lt;24 Std abgelöst/Wechsel &lt;48 Std verspätet</div>
                     <div class="option" data-value="detached-24h">Pflaster ≥24 Std abgelöst/Wechsel ≥48 Std vergessen</div>
                     <div class="option" data-value="interval-7d">Pflasterfreies Intervall >7 Tage</div>
                     <div class="option" data-value="removal-forgotten">Vergessen des Entfernens des 3. Pflasters (Tag 22)</div>
@@ -600,14 +601,44 @@
             
             // Patch logic
             if (answers.q1 === 'patch') {
-                if (answers['q5a'] === 'removal-forgotten') {
+                if (answers['q5a'] === 'removal-forgotten' || answers['q5a'] === 'detached-under24h') {
                     needsEC = false;
-                    reason = 'Vergessen des Entfernens des 3. Pflasters';
+                    reason = answers['q5a'] === 'removal-forgotten'
+                        ? 'Vergessen des Entfernens des 3. Pflasters'
+                        : 'Pflaster <24 Std. abgelöst bzw. Wechsel <48 Std. verspätet';
                 }
             }
             
             // Return result based on whether EC is needed
             if (!needsEC) {
+                if (answers.q1 === 'patch' && answers['q5a'] === 'removal-forgotten') {
+                    return {
+                        class: 'result-no-nk',
+                        title: '✅ Keine Notfallkontrazeption nötig',
+                        content: `
+                            <p><strong>Grund:</strong> Vergessen des Entfernens des 3. Pflasters (22. Tag)</p>
+                            <ul>
+                                <li>So bald wie möglich Pflaster entfernen</li>
+                                <li>Der nächste Zyklus beginnt am gewohnten Wechseltag (Tag 29)</li>
+                                <li>Keine zusätzliche Verhütung mit Kondom nötig</li>
+                            </ul>
+                        `
+                    };
+                }
+                if (answers.q1 === 'patch' && answers['q5a'] === 'detached-under24h') {
+                    return {
+                        class: 'result-no-nk',
+                        title: '✅ Keine Notfallkontrazeption nötig',
+                        content: `
+                            <p><strong>Grund:</strong> Pflaster &lt;24 Std. abgelöst bzw. Wechsel &lt;48 Std. verspätet</p>
+                            <ul>
+                                <li>Pflaster wieder aufkleben oder neues Pflaster verwenden</li>
+                                <li>Nächstes Pflaster am gewohnten Wechseltag aufkleben</li>
+                                <li>Keine zusätzliche Verhütung mit Kondom nötig</li>
+                            </ul>
+                        `
+                    };
+                }
                 return {
                     class: 'result-no-nk',
                     title: '✅ Keine Notfallkontrazeption nötig',
@@ -617,8 +648,8 @@
                         <ul>
                             <li>Vergessene Tablette/Methode sobald als möglich nachholen</li>
                             <li>Einnahme zur gewohnten Zeit weiterführen</li>
-                            ${answers.q1 === 'combined-pill' && answers['q2b'] === 'week3' ? 
-                                '<li>2 Methoden möglich (siehe IENK-Protokoll)</li>' : 
+                            ${answers.q1 === 'combined-pill' && answers['q2b'] === 'week3' ?
+                                '<li>2 Methoden möglich (siehe IENK-Protokoll)</li>' :
                                 '<li>Zusätzlich 7 Tage mit Kondom verhüten</li>'}
                         </ul>
                         <p><strong>Hinweis:</strong> Detaillierte Anweisungen siehe IENK "Differenziertes Vorgehen" Protokoll</p>

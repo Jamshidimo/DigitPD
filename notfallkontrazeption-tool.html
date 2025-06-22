@@ -384,6 +384,7 @@
             <div class="question" id="q3l">
                 <h3>3l. Problem mit dem Verhütungspflaster</h3>
                 <div class="options">
+                    <div class="option" data-value="detached-under24h">Inkorrektes Aufliegen / Ablösen des Pflasters &lt;24 Std.</div>
                     <div class="option" data-value="detached-24h">Inkorrektes Aufliegen / Ablösen des Pflasters ≥24 Std.</div>
                     <div class="option" data-value="mid-cycle-48h">Pflaster-Wechsel in der Mitte des Zyklus (8. / 15. Tag) ≥48 Std. vergessen</div>
                     <div class="option" data-value="interval-7d">Pflasterfreies Intervall >7 Tage</div>
@@ -994,7 +995,7 @@
             
             // Patch logic
             if (answers['q3b'] === 'patch') {
-                if (answers['q3l'] === 'removal-forgotten' || answers['q3l'] === 'detached-24h') {
+                if (answers['q3l'] === 'removal-forgotten' || answers['q3l'] === 'detached-under24h') {
                     needsEC = false;
                 }
             }
@@ -1027,7 +1028,7 @@
                         `
                     };
                 }
-                if (answers['q3b'] === 'patch' && answers['q3l'] === 'detached-24h') {
+                if (answers['q3b'] === 'patch' && answers['q3l'] === 'detached-under24h') {
                     return {
                         class: 'result-no-nk',
                         title: '✅ Keine Notfallkontrazeption nötig',
@@ -1610,6 +1611,7 @@
                 'week3': '3. Anwendungswoche',
                 
                 // Q3l - Pflaster Problem
+                'detached-under24h': 'Inkorrektes Aufliegen / Ablösen des Pflasters < 24 Std.',
                 'detached-24h': 'Inkorrektes Aufliegen / Ablösen des Pflasters >= 24 Std.',
                 'mid-cycle-48h': 'Pflaster-Wechsel in der Mitte des Zyklus (8. / 15. Tag) >= 48 Std. vergessen',
                 'interval-7d': 'Pflasterfreies Intervall > 7 Tage',
