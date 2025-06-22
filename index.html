@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PD-Check</title> <img src="logo.png" alt="Logo" style="width: 150px; height: auto;" />
+    <title>PD-Check</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 2rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
         h1 {
             margin-bottom: 1rem;
@@ -26,12 +31,26 @@
             text-decoration: none;
             margin: 1rem 0;
         }
+        .cta-button {
+            background-color: #ffeb3b;
+            color: #764ba2;
+            padding: 1rem 2.5rem;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.5rem;
+            text-decoration: underline;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: #ffe761;
+        }
     </style>
 </head>
 <body>
     <h1>PD-Check </h1>
     <ul>
-        <li><a href="notfallkontrazeption-tool.html">Zum digitalen Notfallkontrazeption Abgabe-Tool</a></li>
+        <li><a class="cta-button" href="notfallkontrazeption-tool.html">Zum digitalen Notfallkontrazeption Abgabe-Tool</a></li>
     </ul>
     <h2>Guidelines und hilfreiche Dokumente</h2>
     <ul>
