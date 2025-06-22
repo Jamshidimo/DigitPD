@@ -1544,10 +1544,10 @@
             doc.line(margin, yPosition, pageWidth - margin, yPosition);
             yPosition += 6;
             
-            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 9, false, 0, 3);
+            addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 9, false, 0, 8);
             // Increase spacing before the "Verantwortlich" line for clarity
-            addText('Formular wurde durchgeführt durch: ________________________  Funktion: ________________________', 9, false, 0, 6);
-            addText('Verantwortlich: Apotheker/in ________________________', 9, false, 0, 0);
+            addText('Algorithmus wurde bedient durch: ___________________________  Funktion: ___________________________', 9, false, 0, 8);
+            addText('Verantwortlich: Apotheker/in ___________________________', 9, false, 0, 0);
             
             // Save with better filename
             const fileName = `Notfallkontrazeption_${dateStr.replace(/\./g, '-')}_${timeStr.replace(/:/g, '-')}.pdf`;
