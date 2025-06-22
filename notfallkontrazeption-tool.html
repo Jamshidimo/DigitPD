@@ -1431,7 +1431,8 @@
             const margin = 20;
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
-            const lineHeight = 1.5; // reduced line spacing
+            // Adjusted line spacing to avoid overlapping text
+            const lineHeight = 3;
             const maxLineWidth = pageWidth - 2 * margin;
             let yPosition = margin;
         
