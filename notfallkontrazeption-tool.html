@@ -1464,7 +1464,7 @@
             
             // Clone and clean
             const clone = resultElement.cloneNode(true);
-            clone.innerHTML = clone.innerHTML.replace(/[📄💊⚠️✅]/g, '');
+            clone.innerHTML = clone.innerHTML.replace(/[📋📄💊⚠️✅]/g, '');
             
             // Process each child element with better text handling
             Array.from(clone.children).forEach(child => {
@@ -1667,7 +1667,7 @@
             tempDiv.innerHTML = html;
             
             // Remove emojis
-            tempDiv.innerHTML = tempDiv.innerHTML.replace(/[📄💊⚠️✅]/g, '');
+            tempDiv.innerHTML = tempDiv.innerHTML.replace(/[📋📄💊⚠️✅]/g, '');
             
             let result = '';
             
