@@ -1431,7 +1431,7 @@
             const margin = 20;
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
-            const lineHeight = 6;
+            const lineHeight = 3; // reduced line spacing
             const maxLineWidth = pageWidth - 2 * margin;
             let yPosition = margin;
         
@@ -1544,6 +1544,7 @@
             yPosition += 6;
             
             addText('Dieses Protokoll wurde automatisch erstellt basierend auf den IENK-Leitlinien.', 9, false, 0, 3);
+            addText('Formular wurde durchgeführt durch: ________________________  Funktion: ________________________', 9, false, 0, 3);
             addText('Verantwortlich: Apotheker/in ________________________', 9, false, 0, 0);
             
             // Save with better filename
